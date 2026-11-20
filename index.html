@@ -505,6 +505,8 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
       <button type="button" class="btn sub wide" id="rp-cancel1" style="border:0">やめる</button>
       <input type="file" accept="image/*" capture="environment" id="in-cam" hidden>
       <input type="file" accept="image/*" id="in-file" hidden>
+      <input type="file" accept="image/*" capture="environment" id="in-cam2" hidden>
+      <input type="file" accept="image/*" id="in-file2" hidden>
       <p class="msg" id="rp-pickmsg" role="status"></p>
     </div>
     <div class="card center" id="rp-wait" hidden><p style="margin:8px 0"><span class="spin" aria-hidden="true"></span><span id="rp-waittext">写真を読み取っています（10秒ほどかかります）</span></p></div>
@@ -515,6 +517,15 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
         <img class="thumb" id="pp-thumb" alt="送った写真" hidden>
         <div class="warn" id="pp-warn" hidden></div>
         <div id="pp-ro"></div>
+      </div>
+      <div class="card" id="pp-second" hidden>
+        <p class="t" id="pp-add2note" hidden style="margin:0 0 6px;font-weight:700;color:var(--good)">2枚目を足しました</p>
+        <button type="button" class="btn sub wide" id="pp-add2" style="margin-top:0">2枚目（営業の続き）を足す</button>
+        <div id="pp-add2pick" hidden style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" class="btn" id="pp-cam2" style="flex:1">写真を撮る</button>
+          <button type="button" class="btn sub" id="pp-file2" style="flex:1">写真を選ぶ</button>
+        </div>
+        <p class="t" style="margin:6px 0 0">日報が2枚になる日は、2枚目（営業の続き）を足すと、ロングを2枚の中から探します。</p>
       </div>
       <div class="okwrap" id="pp-okwrap">
         <label class="okbig"><input type="checkbox" id="pp-ok"><span>写真の日報と同じです</span></label>
@@ -1762,6 +1773,8 @@ var Calc=(function(){
     var th=$('pp-thumb');if(!apps&&RP.thumb){th.src=RP.thumb;th.hidden=false}else{th.removeAttribute('src');th.hidden=true}
     var wb=$('pp-warn');wb.hidden=!(warns&&warns.length);wb.innerHTML=(warns||[]).map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
     $('pp-okwrap').hidden=apps;$('pp-ok').checked=false;
+    $('pp-second').hidden=apps;$('pp-add2pick').hidden=true;
+    $('pp-add2note').hidden=!RP.img2;$('pp-add2').textContent=RP.img2?'2枚目を撮り直す':'2枚目（営業の続き）を足す';
     $('pp-fixnote').hidden=!apps||!!r.manual;
     var hasApps=!!S.me.appSales;
     $('pp-appcard').hidden=!hasApps;
@@ -1782,7 +1795,7 @@ var Calc=(function(){
   function openApps(r,back){RP.date=r.date;RP.backTo=back;RP.thumb='';showPhoto('apps',r,[]);show('report')}
   function openReport(){
     setMsg($('rp-pickmsg'),'');rpStage('pick');$('in-cam').value='';$('in-file').value='';
-    $('rp-fix').hidden=!(S.me.appSales&&S.reports.length);RP.ticket='';
+    $('rp-fix').hidden=!(S.me.appSales&&S.reports.length);RP.ticket='';RP.img1=null;RP.img2=null;RP.cur=null; // 写真は残さない
     var hand=!Calc.tabAccess(S.me).photo; // 手書き日報の人は「手で入れる」だけ
     $('rp-cam').hidden=hand;$('rp-file').hidden=hand;
     $('rp-h').textContent=hand?'日報を手で入れる':'日報の写真を送る';$('rp-hand').textContent=hand?'日報の数字を入れる':'写真を使わずに、手で入れる';/* 手書き日報の人の見出しとボタン（2026-11-20） */
@@ -1832,19 +1845,43 @@ var Calc=(function(){
     setMsg($('rp-pickmsg'),'');
     rpStage('wait');$('rp-waittext').textContent='写真を準備しています';
     shrink(file).then(function(dataUrl){
-      RP.thumb=dataUrl;
+      RP.thumb=dataUrl;RP.img1=dataUrl.split(',')[1];RP.img2=null;
       $('rp-waittext').textContent='写真を読み取っています（10秒ほどかかります）';
-      return api('read',{b64:dataUrl.split(',')[1],mediaType:'image/jpeg'});
+      return api('read',{b64:RP.img1,mediaType:'image/jpeg'});
     }).then(function(j){
       if(j.notReport){rpStage('pick');setMsg($('rp-pickmsg'),'日報の写真ではないようです。日報全体が写った写真を選び直すか、手で入れてください。',true);return}
       RP.ticket=j.ticket;
       var wl=(j.plan.warnings||[]).slice();if(j.plan.night)wl.push('夜中（6時より前）の出庫なので、前の日の日報にしています。');if(j.report.note)wl.push('読み取りの時のメモ：'+j.report.note);
       var r0={date:j.plan.date,sales:j.report.sales,rides:j.report.rides,minutes:j.report.minutes,longFare:j.report.longFare,longFrom:j.report.longFrom,longTo:j.report.longTo,manual:false};
+      RP.cur=r0;RP.curWarn=wl;
       showPhoto('photo',r0,wl);
       var ex=S.reports.find(function(d){return d.date===r0.date});if(ex&&S.me.appSales)writeApps('pp',ex);
     },function(e){
       rpStage('pick');
       setMsg($('rp-pickmsg'),e.message==='decode'?'この写真を読み込めませんでした。別の写真を選ぶか、撮り直してください。手で入れることもできます。':e.message+' 手で入れることもできます。',true);
+    });
+  }
+  // 2枚目（営業の続き）を足して、1枚目と一緒に読み直す。結果は新しい番号に置き換わる
+  function onSecondPhoto(file){
+    if(!file||!RP.img1)return;
+    var keep={};APPK.forEach(function(a){['a','n'].forEach(function(k){var id='pp-'+k+'-'+a[0];keep[id]=$(id).value})});
+    rpStage('wait');$('rp-waittext').textContent='2枚目を準備しています';
+    shrink(file).then(function(dataUrl){
+      var img2=dataUrl.split(',')[1];
+      $('rp-waittext').textContent='読み取っています（2枚分で、15秒ほどかかります）';
+      return api('read',{images:[{b64:RP.img1,mediaType:'image/jpeg'},{b64:img2,mediaType:'image/jpeg'}],prevTicket:RP.ticket||''}).then(function(j){return {j:j,img2:img2}});
+    }).then(function(x){
+      var j=x.j;
+      if(j.notReport){showPhoto('photo',RP.cur,RP.curWarn);Object.keys(keep).forEach(function(id){$(id).value=keep[id]});setMsg($('pp-msg'),'2枚目を読み取れませんでした。写真を撮り直してください。',true);return}
+      RP.img2=x.img2;RP.ticket=j.ticket;
+      var wl=(j.plan.warnings||[]).slice();if(j.plan.night)wl.push('夜中（6時より前）の出庫なので、前の日の日報にしています。');if(j.report.note)wl.push('読み取りの時のメモ：'+j.report.note);
+      var r0={date:j.plan.date,sales:j.report.sales,rides:j.report.rides,minutes:j.report.minutes,longFare:j.report.longFare,longFrom:j.report.longFrom,longTo:j.report.longTo,manual:false};
+      RP.cur=r0;RP.curWarn=wl;
+      showPhoto('photo',r0,wl);
+      Object.keys(keep).forEach(function(id){$(id).value=keep[id]});
+    },function(e){
+      showPhoto('photo',RP.cur,RP.curWarn);Object.keys(keep).forEach(function(id){$(id).value=keep[id]});
+      setMsg($('pp-msg'),e.message==='decode'?'この写真を読み込めませんでした。別の写真を選ぶか、撮り直してください。':e.message,true);
     });
   }
   function collectReport(){
@@ -1869,7 +1906,7 @@ var Calc=(function(){
     var i=S.reports.findIndex(function(d){return d.date===rep.date});
     if(i>=0){if(rep.appUber===undefined){['appUber','appGo','appDidi','appOther','cntUber','cntGo','cntDidi','cntOther'].forEach(function(k){rep[k]=S.reports[i][k]})}S.reports[i]=rep}else S.reports.push(rep);
     S.reports.sort(function(a,b){return a.date<b.date?-1:1});
-    var edit=RP.edit;if(!edit)S.viewTerm=null;RP.saving=false;
+    var edit=RP.edit;if(!edit)S.viewTerm=null;RP.saving=false;RP.img1=null;RP.img2=null;
     renderAll();show(edit?'records':'today'); // 送信のあとはホームに戻る
     showBanner(mdLabel(rep.date)+' の日報を保存しました');
   }
@@ -1896,6 +1933,11 @@ var Calc=(function(){
     $('rp-file').addEventListener('click',function(){$('in-file').click()});
     $('in-cam').addEventListener('change',function(){onPhoto(this.files[0]);this.value=''});
     $('in-file').addEventListener('change',function(){onPhoto(this.files[0]);this.value=''});
+    $('pp-add2').addEventListener('click',function(){$('pp-add2pick').hidden=!$('pp-add2pick').hidden});
+    $('pp-cam2').addEventListener('click',function(){$('in-cam2').click()});
+    $('pp-file2').addEventListener('click',function(){$('in-file2').click()});
+    $('in-cam2').addEventListener('change',function(){onSecondPhoto(this.files[0]);this.value=''});
+    $('in-file2').addEventListener('change',function(){onSecondPhoto(this.files[0]);this.value=''});
     $('rp-hand').addEventListener('click',function(){RP.thumb='';RP.mode='hand';fillCheck({date:todayIso(),sales:null,rides:null,minutes:0,night:false},'',[],'hand')});
     buildApps($('rp-appgrid'),'rp');buildApps($('pp-apps'),'pp');
     $('pp-ok').addEventListener('change',function(){$('pp-send').disabled=!$('pp-ok').checked;$('pp-hint').hidden=$('pp-ok').checked});
@@ -2085,9 +2127,12 @@ var Calc=(function(){
       }
       if(a==='read'){
         if(me.reportType==='手書き日報')return Promise.reject(new Error('手書き日報の人は、写真の読み取りは使えません。手で入れてください。'));
-        var n=Calc.jstNow(Date.now()),id='tk'+(++tkn);
-        tickets[id]={date:n.iso,sales:61200,rides:24,minutes:731,longFare:18400,longFrom:'大阪府北区',longTo:'京都府向日市'};
-        return delay({ok:true,ticket:id,report:{departure:n.iso+' 15:52',sales:61200,rides:24,minutes:731,longFare:18400,longFrom:'大阪府北区',longTo:'京都府向日市',note:''},plan:{date:n.iso,night:false,warnings:[]}},700);
+        var n=Calc.jstNow(Date.now()),id='tk'+(++tkn),two=Array.isArray(d.images)&&d.images.length===2;
+        if(d.prevTicket)delete tickets[d.prevTicket]; // 前の読み取り結果の番号は使えなくなる
+        // 2枚（営業の続きを足した時）は、2枚の乗車の一覧すべての中から一番高いロングを選ぶ見本：1枚目では 18,400円、2枚目に 29,800円がある
+        var lf=two?{longFare:29800,longFrom:'大阪府中央区',longTo:'兵庫県神戸市'}:{longFare:18400,longFrom:'大阪府北区',longTo:'京都府向日市'};
+        tickets[id]=Object.assign({date:n.iso,sales:61200,rides:24,minutes:731},lf);
+        return delay({ok:true,ticket:id,report:Object.assign({departure:n.iso+' 15:52',sales:61200,rides:24,minutes:731,note:''},lf),plan:{date:n.iso,night:false,warnings:[]}},700);
       }
       if(a==='ranking'){
         if(!Calc.tabAccess(me).rank)return Promise.reject(Object.assign(new Error('ランキングに参加していません。'),{code:'not_joined'}));
