@@ -1,0 +1,2126 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="売上">
+<meta name="robots" content="noindex,nofollow">
+<title>タクシー日報</title>
+<style>
+/* 色の決まり。暗い表示の時は暗い色 */
+:root{--bg:#f3f5f8;--panel:#fff;--fg:#17202e;--muted:#5b6778;--line:#d9dfe7;--accent:#b7791f;--accent-soft:#f6ead2;--bar:#2f5d8c;--good:#17754d;--good-soft:#e2f3e9;--bad:#b3362c;--sat:#1f5fbf;--rec:#b3362c;--on-accent:#fff;--font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",system-ui,-apple-system,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#10151d;--panel:#1a212c;--fg:#edf1f6;--muted:#a2adbc;--line:#303a48;--accent:#f0b64b;--accent-soft:#3a2f1a;--bar:#7fb0e0;--good:#5fcf9f;--good-soft:#16352a;--bad:#f08a80;--sat:#7fb0ff;--rec:#f08a80;--on-accent:#10151d;color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6}
+.page{max-width:430px;margin-inline:auto;min-height:100vh;padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:calc(96px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tophd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}
+.tophd h1{font-size:19px;font-weight:700;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tophd small{font-size:12px;color:var(--muted);white-space:nowrap}
+.demo{display:inline-block;font-size:11px;font-weight:700;color:var(--on-accent);background:var(--accent);border-radius:4px;padding:0 6px;margin-left:6px;vertical-align:2px}
+.seg{display:flex;gap:4px;background:var(--line);border-radius:10px;padding:3px;margin:10px 0 12px}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;padding:7px 0;border-radius:8px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--panel);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.stack{display:grid;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+h2{font-size:15px;font-weight:700;margin:0 0 6px}
+.t{font-size:12px;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+.big{font-size:30px;font-weight:700;line-height:1.25}
+.need{padding:12px;border-radius:8px;background:var(--accent-soft)}
+.track{height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:8px}
+.fill{height:100%;background:var(--accent);width:0}
+.pairs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:10px 0 0}
+.pairs>div{min-width:0}
+.pairs .k{font-size:12px;color:var(--muted);display:block}
+.pairs .v{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;display:block;overflow-wrap:anywhere}
+.rbar{display:grid;grid-template-columns:7.2em minmax(0,1fr) 3em;gap:8px;align-items:center;margin-top:10px}
+.rbar .track{margin:0}
+.rbar b{text-align:right;font-variant-numeric:tabular-nums}
+.days{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.days .v{font-weight:700;font-size:16px}
+.mini{font:inherit;font-size:12.5px;font-weight:700;color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:6px;padding:2px 10px;cursor:pointer}
+.edit-row{display:flex;gap:6px;align-items:center}
+.edit-row input{width:5em}
+label.f{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+.f-like{display:block;font-size:12px;color:var(--muted);margin:0 0 4px} /* 入れる欄でない数字の見出しも、欄の見出しと同じ見た目 */
+input[type=text],input[type=time],input[type=date],input[type=number]{display:block;width:100%;min-width:0;font:inherit;font-size:16px;font-weight:500;color:var(--fg);-webkit-text-fill-color:var(--fg);opacity:1;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-variant-numeric:tabular-nums;-webkit-appearance:none;appearance:none}
+input[type=time],input[type=date]{text-align:left}
+select{display:block;width:100%;min-width:0;font:inherit;font-size:16px;font-weight:500;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+input::placeholder{color:var(--muted);-webkit-text-fill-color:var(--muted);opacity:.7}
+input:focus-visible,button:focus-visible{outline:2px solid var(--bar);outline-offset:2px}
+.inline{display:flex;gap:8px;align-items:center}
+.inline input{flex:1 1 auto}
+.btn{font:inherit;font-weight:700;white-space:nowrap;flex:none;border:0;border-radius:9px;padding:10px 18px;background:var(--accent);color:var(--on-accent);cursor:pointer}
+.btn.sub{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
+.btn.wide{display:block;width:100%;margin-top:12px;padding:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.msg{font-size:13px;color:var(--muted);min-height:1.4em;margin:6px 0 0}
+.msg.err{color:var(--bad)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid2 .wide{grid-column:span 2}
+.rv{font-size:22px;font-weight:700;line-height:1.3;text-align:center;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg);white-space:nowrap;overflow:hidden}
+.withmic{display:flex;gap:6px}
+#mic{flex:0 0 44px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--accent);color:var(--on-accent);cursor:pointer;padding:0;width:44px;height:44px;align-self:center}
+#mic svg{width:20px;height:20px}
+#mic.on{background:var(--rec);color:#fff}
+@media (prefers-reduced-motion:no-preference){#mic.on{animation:blink 1s ease-in-out infinite}}
+@keyframes blink{50%{opacity:.6}}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-weight:700;cursor:pointer}
+.chk input{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin:1px 0 0;border:2px solid var(--line);border-radius:5px;background:var(--bg);display:grid;place-items:center;cursor:pointer}
+.chk input:checked{background:var(--accent);border-color:var(--accent)}
+.chk input:checked::after{content:"✓";color:var(--on-accent);font-size:15px;line-height:1;font-weight:800}
+.chk small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.chkrow{display:flex;gap:18px;flex-wrap:wrap}
+.sw{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.sw button{font:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:999px;padding:4px 16px;cursor:pointer}
+/* 順位：都道府県（左半分）と勤務（右半分）を1行に並べる（2026-11-18 本人） */
+.rk-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;margin-bottom:10px}
+.rk-row select{font-size:15px;padding:6px 8px}
+.rk-row .sw{margin:0;gap:4px;flex-wrap:nowrap}
+.rk-row .sw button{flex:1 1 0;min-width:0;padding:5px 0;font-size:13px;text-align:center}
+/* 順位：勤務はチェックの形、数字はタブの形にして見分けやすく（2026-11-18 本人がA案に決めた） */
+#rk-shifts,#cp-shifts{justify-content:space-between}
+#rk-shifts button,#cp-shifts button{background:none;border:0;border-radius:0;padding:0;display:inline-flex;align-items:center;gap:4px;color:var(--fg);font-size:13.5px;flex:0 0 auto;white-space:nowrap}
+#rk-shifts button::before,#cp-shifts button::before{content:"";width:17px;height:17px;border:2px solid var(--line);border-radius:4px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--panel)}
+#rk-shifts button[aria-pressed="true"],#cp-shifts button[aria-pressed="true"]{background:none;color:var(--fg)}
+#rk-shifts button[aria-pressed="true"]::before,#cp-shifts button[aria-pressed="true"]::before{content:"✓";background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+body.ui-a #rk-metrics,body.ui-a #cp-metrics{flex-wrap:nowrap;gap:0;border-bottom:2px solid var(--line);margin-bottom:10px}
+body.ui-a #rk-metrics button,body.ui-a #cp-metrics button{flex:1 1 auto;border:0;border-radius:0;background:none;padding:7px 2px;margin-bottom:-2px;border-bottom:3px solid transparent;font-size:13.5px;white-space:nowrap;color:var(--muted)}
+body.ui-a #rk-metrics button[aria-pressed="true"],body.ui-a #cp-metrics button[aria-pressed="true"]{background:none;color:var(--fg);border-bottom-color:var(--accent)}
+.sw button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.rk{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.rk:last-child{border-bottom:0}
+.rk .n{font-weight:800;text-align:center}
+.rk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk.me{background:var(--accent-soft);border-radius:8px}
+.tablewrap{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-size:12px;font-weight:500;color:var(--muted);text-align:right;padding:6px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{text-align:right;padding:6px 4px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+tr.off td{color:var(--muted)}
+table td.sun{color:var(--bad)}
+table td.sat{color:var(--sat)}
+/* 今月：残りの達成すべき売上（左）と本日の売上目標（右）を縦線で区切って並べる（2026-11-18 本人） */
+.mo-split.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;align-items:end}
+.mo-split.two>div+div{border-left:2px solid var(--accent);padding-left:12px}
+.mo-split.two .big{font-size:clamp(18px,5.6vw,22px);white-space:nowrap}
+/* ホーム：残りの達成すべき売上の枠は、字を少し小さく・縦を少し詰める（2026-11-19 本人） */
+.need:has(#mo-split){padding:5px 12px}
+#mo-split .big{font-size:17px;line-height:1.2}
+#mo-need-n{margin-top:2px}
+/* ホーム：進捗達成率〜残り乗務可能時間を、字を一段小さく・余白を詰めて縦を縮める（2026-11-19 本人） */
+#mo-card .rbar{margin-top:6px}
+#mo-card .rbar .t{font-size:12px}
+#mo-card .rbar b{font-size:14px}
+#mo-card #mo-formula{font-size:11px;margin-top:2px!important}
+#mo-card .days{margin-top:8px;padding-top:6px}
+#mo-card .days .v{font-size:14px}
+#mo-card .pairs{gap:4px 12px;margin-top:6px}
+#mo-card .pairs .k{font-size:11px}
+#mo-card .pairs .v{font-size:14px}
+/* さらに：出勤予定日数〜残り乗務可能時間を、数字を少し小さく・行の間を詰める（2026-11-20 本人） */
+#mo-card .days{margin-top:6px;padding-top:4px}
+#mo-card .days .v{font-size:13px}
+#mo-card .days .mini{padding:1px 8px;font-size:12px}
+#mo-card .pairs{gap:2px 12px;margin-top:4px}
+#mo-card .pairs .k{line-height:1.3}
+#mo-card .pairs .v{font-size:13px;line-height:1.3}
+/* 必要な1時間あたり：数字を真ん中に、（税込）を数字の横に。現時点の時間平均単価は太字にしない（2026-11-18 本人） */
+/* 今日のペースが本日の目標に届いている時（時間平均単価ベースで100%以上）は、必要な1時間あたりの枠を緑の地に（2026-11-20 本人） */
+.card.pace-ok{background:var(--good-soft);border-color:var(--good)}
+.card.pace-ok #td-need{color:var(--good)}
+/* 進捗達成率が100%以上の時は棒と%を緑に（2026-11-20 本人） */
+.fill.good{background:var(--good)}
+/* 達成率の一言は、棒の下に小さく（2026-11-20 本人） */
+.rbar-note{font-size:11px;margin-top:2px}
+b.good{color:var(--good)}
+.needrow{display:flex;justify-content:center;align-items:baseline;gap:4px;margin:2px 0 4px}
+.needrow .big{font-size:30px}
+.needrow small{font-size:13px;color:var(--muted)}
+.avgbox b{font-weight:500}
+/* 現時点の時間平均単価：入れる欄ではないので白い枠で出す */
+.avgbox{display:flex;align-items:baseline;justify-content:flex-end;gap:2px;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);align-content:center;flex-wrap:nowrap}
+.avgbox b{font-size:19px;line-height:44px;white-space:nowrap}
+.avgbox small{font-size:11px;color:var(--muted);white-space:nowrap}
+#td-note:empty{display:none} /* 知らせが無い時は、今日の売上の枠の下に空きを作らない */
+.cptable{font-size:12.5px}
+.cptable th,.cptable td{padding:7px 3px;white-space:nowrap}
+.cptable td small.pct{display:block;font-size:10.5px;line-height:1.2}
+/* 日ごとの記録の表：6列をスマホの幅に収める */
+.dtable{font-size:12px}
+.dtable th,.dtable td{padding:7px 3px;white-space:nowrap}
+.dtable th{font-size:10.5px}
+.hourcell{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.hourbar{height:8px;border-radius:2px;background:var(--bar);flex:none}
+.mnav{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;margin-top:8px}
+.mnav button{font:inherit;font-size:14px;font-weight:700;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);cursor:pointer;white-space:nowrap}
+.mnav button:disabled{color:var(--muted);opacity:.45;cursor:default}
+.mnav span{text-align:center;font-weight:700}
+.per-ride{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-top:1px}
+.rc-range{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.plan-note{margin-left:8px;font-size:11px;color:var(--muted)}
+table.mtable{font-size:11px}
+.mtable th{padding:6px 2px}
+.mtable td{padding:6px 2px}
+.mtable tr.avg th,.mtable tr.avg td{font-weight:700;color:var(--fg);border-top:2px solid var(--fg);border-bottom:0}
+.mtable tr.avg th{text-align:left}
+.tabbar{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:430px;display:flex;justify-content:space-around;align-items:flex-end;background:var(--panel);border-top:1px solid var(--line);padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
+.tabbar button.tb{flex:1;font:inherit;font-size:12px;border:0;background:transparent;color:var(--muted);padding:6px 0;cursor:pointer}
+.tabbar button.tb svg{display:block;width:22px;height:22px;margin:0 auto 2px}
+.tabbar button.tb[aria-current="true"]{color:var(--accent);font-weight:700}
+.cam{flex:none;width:62px;height:62px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:800;font-size:12px;line-height:1.25;margin-top:-30px;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);border-radius:10px;padding:9px 16px;font-size:14px;max-width:90vw;z-index:9;text-align:center}
+.thumb{display:block;max-width:100%;max-height:150px;border-radius:8px;border:1px solid var(--line);margin:0 auto 6px}
+.warn{background:var(--accent-soft);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:10px}
+.confirm{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:12px;margin-top:12px}
+.confirm .row{display:flex;gap:8px;margin-top:10px}
+.confirm .row .btn{flex:1;padding:9px 6px}
+.spin{display:inline-block;width:16px;height:16px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;vertical-align:-3px;margin-right:8px}
+@media (prefers-reduced-motion:no-preference){.spin{animation:rot 1s linear infinite}}
+@keyframes rot{to{transform:rotate(360deg)}}
+.center{text-align:center}
+/* 設定の「保存」「もどる」は画面の下に固定（下のボタンの上に置く。2026-11-20 初見の見直し18） */
+#v-setup{padding-bottom:110px}
+#su-foot{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:430px;bottom:var(--barh,0px);z-index:4;background:var(--bg);border-top:1px solid var(--line);padding:8px max(16px,env(safe-area-inset-left,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+#su-foot .msg{margin:0 0 4px;min-height:0}
+#su-foot .msg:empty{display:none}
+#su-foot .footbtns{display:flex;gap:8px}
+#su-foot .btn{margin:0!important;flex:1 1 0}
+#su-foot #su-back{flex:0 0 28%}
+.rbar .sub{display:block;font-size:10px;line-height:1.3;color:var(--muted)}
+.avgbox b.hint{font-size:13px;font-weight:500;color:var(--muted)}
+.dtable td.go,.dtable th.go{width:1em;padding-left:0;padding-right:0;text-align:center;color:var(--muted)}
+.hint1{margin:0 0 8px;font-size:13px;color:var(--muted)}
+/* マイページ */
+.linkrow{display:flex;justify-content:space-between;align-items:center;width:100%;font:inherit;font-weight:700;background:none;border:0;border-bottom:1px solid var(--line);color:var(--fg);padding:11px 2px;cursor:pointer;text-align:left}
+.linkrow:last-child{border-bottom:0}
+.linkrow:has(+ .linkrow[hidden]){border-bottom:0} /* 下の行が隠れている時は線を出さない */
+.linkrow span:last-child{color:var(--muted);font-size:18px}
+.pod{display:grid;grid-template-columns:6.8em repeat(3,minmax(0,1fr));gap:4px 4px;font-variant-numeric:tabular-nums;align-items:center;font-size:13px}
+.pod b{text-align:center;font-size:15px}
+.pod .h{text-align:center}
+.pod .m{color:var(--muted);font-size:12.5px}
+.medal{font-style:normal;display:inline-block;width:20px;height:20px;border-radius:50%;font-size:12px;line-height:20px;text-align:center;color:#fff;font-weight:700}
+.medal.g{background:#c9a227}.medal.s{background:#8f99a6}.medal.c{background:#b0703c}
+.mysec{font-weight:700;font-size:13px;margin:10px 0 4px}
+.bl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;font-variant-numeric:tabular-nums;margin-top:6px}
+.bl .m{color:var(--muted);font-size:13px}
+.bl b{text-align:right}
+.bl small{grid-column:1/-1;color:var(--muted);font-size:11.5px;margin:-2px 0 8px}
+/* 写真を送ったあと：数字は変えられない表示。チェックは目立たせる */
+.ro{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.ro:last-child{border-bottom:0}
+.ro span{color:var(--muted);font-size:13px}
+.ro b{font-variant-numeric:tabular-nums;text-align:right}
+.ro small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.okwrap{margin:22px 0 14px}
+.okbig{display:flex;align-items:center;gap:12px;font-weight:800;font-size:18px;cursor:pointer}
+.okbig input{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:28px;margin:0;border:3px solid var(--accent);border-radius:7px;background:var(--panel);display:grid;place-items:center;cursor:pointer}
+.okbig input:checked{background:var(--accent)}
+.okbig input:checked::after{content:"✓";color:var(--on-accent);font-size:20px;line-height:1;font-weight:800}
+.linkbtn{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;padding:8px 0 0;cursor:pointer;text-align:left}
+.appcell{display:grid;gap:6px;min-width:0}
+.appcell input{font-size:15px;padding:7px 8px}
+.approw .c{display:block;font-size:10.5px;color:var(--muted);font-weight:500;white-space:nowrap}
+/* 月の合計：アプリ別の売上を入れる人だけ（売上を1行・内訳4つを横1列） */
+.ms-top{margin-top:8px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end}
+.ms-top>div{min-width:0;container-type:inline-size}
+/* 歩合は売上（税抜）の横に（2026-11-20 本人） */
+.ms-top .k{font-size:12px;color:var(--muted);display:block}
+.ms-top .v{font-size:clamp(16px,5.2vw,26px);font-size:min(26px,14cqw);white-space:nowrap;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums}
+.ms-apps{margin-top:10px}
+.approw{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:4px}
+.approw>div{background:var(--bg);border-radius:6px;padding:4px 6px;min-width:0}
+.approw .k{display:block;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.approw .v{display:block;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+@media (max-width:360px){.approw .v{font-size:11px}}
+/* 比較：折れ線グラフ（外部の道具は使わず、SVGで描く。色は変数なので暗い表示でも見える） */
+.cg-g{stroke:var(--line);stroke-width:1}
+.cg-t{fill:var(--muted);font-size:10px}
+.cg-d{fill:var(--muted);font-size:8.5px}
+.cg-d.sat{fill:var(--sat);font-weight:700}
+.cg-d.hol{fill:var(--bad);font-weight:700}
+.cg-mo{fill:var(--fg);font-size:9px;font-weight:700}
+.cg-a{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;opacity:.85}
+.cg-m{fill:none;stroke:var(--accent);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.cg-p{fill:var(--accent);stroke:var(--panel);stroke-width:1.5}
+.cg-pa{fill:var(--muted)}
+.cg-bm{fill:var(--accent)}
+.cg-ba{fill:var(--muted);opacity:.55}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--fg);margin:8px 0 4px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+#cp-label{font-size:12.5px;line-height:1.3}
+.say{font-size:14.5px;font-weight:700;margin:0 0 4px;line-height:1.5}
+.up{color:var(--good)}.down{color:var(--bad)}
+#cp-chart svg{display:block;width:100%;height:auto}
+.cptable td,.cptable th{padding:6px 3px;font-size:12.5px}
+.cptable td:last-child,.cptable th:last-child{text-align:right}
+/* 平均のカード：1行に収めて縦を短く（2026-11-18 本人） */
+.avgcard{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 12px}
+.avgcard>div{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.avgcard small{font-size:10.5px;margin-left:6px}
+.avgcard b{font-size:17px;white-space:nowrap;line-height:1.3}
+.rk.avg{background:var(--bg);border-radius:6px;padding:5px 4px;font-size:12px;color:var(--muted);border-bottom:0;margin-bottom:2px}
+.rk.avg .n{font-weight:700;font-size:11px}
+.rk.avg b{font-size:12.5px;color:var(--fg)}
+.rk .nm small{display:block;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.fielderr{font-size:13px;color:var(--bad);margin:4px 0 0;font-weight:700}
+.banner{background:var(--good);color:var(--panel);border-radius:10px;padding:9px 14px;font-weight:700;font-size:14px;margin:10px 0 0;text-align:center}
+tr.tap{cursor:pointer}
+tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line)}
+.mtable th{font-size:10.5px}.mtable td,.mtable th{white-space:nowrap}
+@media (max-width:360px){.big{font-size:26px}.rbar{grid-template-columns:6.4em minmax(0,1fr) 3em}}
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <header class="tophd"><h1 id="hd-title">タクシー日報</h1><small id="hd-sub"></small></header>
+  <div class="banner" id="banner" role="status" hidden></div>
+  <nav class="seg" id="seg" role="tablist" aria-label="表示の切り替え" hidden>
+    <button type="button" role="tab" data-tab="today" aria-selected="true">ホーム</button>
+    <button type="button" role="tab" data-tab="month" aria-selected="false">今月</button>
+    <button type="button" role="tab" data-tab="records" aria-selected="false">記録</button>
+    <button type="button" role="tab" data-tab="rank" aria-selected="false" id="seg-rank" hidden>順位</button>
+    <button type="button" role="tab" data-tab="compare" aria-selected="false" id="seg-compare" hidden>比較</button>
+  </nav>
+
+  <main>
+  <!-- 読み込み中・開けない時の知らせ -->
+  <section id="v-msg" class="card center" style="margin-top:16px"><p id="msg-text">読み込んでいます</p></section>
+
+  <!-- はじめの設定（あとから「設定」でも同じ画面） -->
+  <section id="v-setup" class="stack" hidden>
+    <div class="card">
+      <p class="t" id="su-lead" style="margin:0 0 4px">あなたに合わせて、違う所だけ直してください。</p>
+      <label class="f" for="su-pref" style="margin-top:8px">営業する都道府県</label>
+      <select id="su-pref"></select>
+      <label class="f">雇用形態</label>
+      <div class="chkrow">
+        <label class="chk"><input type="checkbox" id="su-sei" checked><span>正社員</span></label>
+        <label class="chk"><input type="checkbox" id="su-sho"><span>嘱託</span></label>
+      </div>
+      <p class="t" style="margin:2px 0 0">嘱託は、月間の平均には入りません（日ごとの平均とランキングには入ります）</p>
+      <label class="f">勤務</label>
+      <div class="chkrow">
+        <label class="chk"><input type="checkbox" id="su-day" checked><span>昼勤</span></label>
+        <label class="chk"><input type="checkbox" id="su-night"><span>夜勤</span></label>
+        <label class="chk"><input type="checkbox" id="su-kaku"><span>隔日勤務</span></label>
+      </div>
+      <label class="f">日報の種類</label>
+      <div class="chkrow">
+        <label class="chk"><input type="checkbox" id="su-auto" checked><span>自動日報</span></label>
+        <label class="chk"><input type="checkbox" id="su-hand"><span>手書き日報</span></label>
+      </div>
+      <p class="t" id="su-handnote" hidden style="margin:2px 0 0;color:var(--bad);font-weight:700">手書き日報の人も、順位と全体の平均は見られます。ただし、自分は順位に並びません。</p>
+      <label class="f" for="su-name">ニックネーム</label>
+      <input type="text" id="su-name" autocomplete="off" maxlength="20" placeholder="例 よし">
+      <small class="t" style="display:block;margin-top:4px">ランキングにも、このニックネームが出ます。本名は入れないでください。</small>
+      <label class="chk" id="su-join-wrap" style="margin-top:8px"><input type="checkbox" id="su-join"><span>ランキングに参加する<small>参加した人どうしで、昼勤・夜勤・隔勤に分けた順位を見られます</small></span></label>
+      <div id="su-nick-wrap" hidden>
+        <label class="f" for="su-nick">ランキングでの呼び名（ほかの人に見える名前）</label>
+        <input type="text" id="su-nick" autocomplete="off" maxlength="20">
+      </div>
+      <label class="f" for="su-rate">歩合の割合（売上 × この数字）</label>
+      <input type="text" id="su-rate" inputmode="decimal" autocomplete="off">
+      <label class="f" for="su-hours">1日の乗務時間（時間）</label>
+      <input type="text" id="su-hours" inputmode="decimal" autocomplete="off">
+      <label class="f" for="su-close">締め日（日。この日の次の日から次の月度）</label>
+      <input type="text" id="su-close" inputmode="numeric" autocomplete="off">
+      <label class="f" for="su-week">週の始まりの曜日（今週の合計の区切り）</label>
+      <select id="su-week"><option value="0">日曜</option><option value="1">月曜</option><option value="2">火曜</option><option value="3">水曜</option><option value="4">木曜</option><option value="5">金曜</option><option value="6">土曜</option></select>
+      <label class="f">進捗達成率の出し方</label>
+      <label class="chk"><input type="checkbox" id="su-mode-days" checked><span>出勤予定日数で<small>1日平均 × 出勤予定日数</small></span></label>
+      <label class="chk"><input type="checkbox" id="su-mode-hours"><span>乗務時間の上限で<small>時間平均単価 × 月の乗務時間の上限</small></span></label>
+      <label class="f" for="su-plan">今月の出勤予定日数（日）<span class="plan-note">※変更があれば毎月入れ直す</span></label>
+      <input type="text" id="su-plan" inputmode="numeric" autocomplete="off">
+      <label class="f" for="su-limit">月の乗務時間の上限（時間）</label>
+      <input type="text" id="su-limit" inputmode="numeric" autocomplete="off">
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="su-apps"><span>アプリ別の売上を入れる（Uber・GO・DiDi・配車その他）<small>チェックすると、日報ごとにアプリ別の金額を入れる欄が出て、今月の「月の合計」にアプリ別の合計が出ます</small></span></label>
+    </div>
+    <div id="su-foot">
+      <p class="msg" id="su-msg" role="status"></p>
+      <div class="footbtns">
+        <button type="button" class="btn sub" id="su-back" hidden>もどる</button>
+        <button type="button" class="btn" id="su-go">はじめる</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 今日 -->
+  <section id="v-today" class="stack" hidden>
+    <!-- 今月の目標の枠（今月のタブから移した。2026-11-19 本人） -->
+    <div class="card" id="mo-card">
+      <h2 id="mo-h">今月度の目標売上</h2>
+      <label class="f" for="mo-goal" style="margin-top:4px">目標の金額（円）を入れて「保存」を押してください</label>
+      <div class="inline"><input type="text" id="mo-goal" inputmode="numeric" autocomplete="off" placeholder="1,300,000"><button type="button" class="btn" id="mo-save">保存</button></div>
+      <p class="msg" id="mo-msg" role="status"></p>
+      <div id="mo-box" hidden>
+        <div class="need"><div class="mo-split" id="mo-split"><div><div class="t" id="mo-need-l"></div><div class="big num" id="mo-need-v"></div></div></div><div class="t" id="mo-need-n"></div></div>
+        <div class="rbar"><span class="t">進捗達成率</span><div class="track" aria-hidden="true"><div class="fill" id="mo-fill1"></div></div><b id="mo-rate1">—</b></div>
+        <div class="t rbar-note">このペースなら月末に</div>
+        <div class="t" id="mo-formula" style="margin-top:2px"></div>
+        <div class="rbar"><span class="t">月間達成率</span><div class="track" aria-hidden="true"><div class="fill" id="mo-fill2"></div></div><b id="mo-rate2">—</b></div>
+        <div class="t rbar-note">今日までの分</div>
+      </div>
+      <div class="days">
+        <span class="t">今月の出勤予定日数</span>
+        <span class="edit-row" id="mo-plan-view"><b class="num v" id="mo-plan">—</b><button type="button" class="mini" id="mo-plan-edit">変更</button></span>
+        <span class="edit-row" id="mo-plan-form" hidden><input type="text" id="mo-plan-in" inputmode="numeric" autocomplete="off" aria-label="今月の出勤予定日数"><button type="button" class="mini" id="mo-plan-ok">保存</button><button type="button" class="mini" id="mo-plan-no" style="color:var(--muted);border-color:var(--line)">やめる</button></span>
+      </div>
+      <div class="pairs">
+        <div><span class="k">出勤した日数</span><span class="v num" id="mo-worked">—</span></div>
+        <div><span class="k">残り出勤予定日数</span><span class="v num" id="mo-remplan">—</span></div>
+        <div><span class="k">乗った乗務時間</span><span class="v num" id="mo-min">—</span></div>
+        <div><span class="k">残り乗務可能時間</span><span class="v num" id="mo-left">—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>今日の売上</h2>
+      <div class="grid2">
+        <div class="wide"><label class="f" for="td-goal" style="margin-top:0">本日の売上目標（今日だけ変える時）</label><input type="text" id="td-goal" inputmode="numeric" autocomplete="off" placeholder="例 50,000"><p class="t" style="margin:4px 0 0">薄い数字は、自動で出した今日の目標です。今日だけ変える時に入れてください。</p></div>
+        <div><label class="f" for="td-dep" style="margin-top:0">出庫時間</label><input type="time" id="td-dep"></div>
+        <div><label class="f" for="td-ret" style="margin-top:0">帰庫時間</label><input type="time" id="td-ret"></div>
+        <div><label class="f" for="td-sales" style="margin-top:0">今の税抜売上（円）</label>
+          <div class="withmic"><input type="text" id="td-sales" inputmode="numeric" autocomplete="off" placeholder="例 25,000"><button type="button" id="mic" aria-label="声で売上を入れる" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div></div>
+        <div><span class="f-like">現時点の時間平均単価</span><div class="avgbox"><b class="num" id="td-avg">—</b><small>（税抜）</small></div></div>
+      </div>
+      <p class="msg" id="td-note" role="status"></p>
+    </div>
+    <div class="card" id="td-need-card">
+      <div class="t">必要な1時間あたりの売上</div>
+      <div class="needrow"><span class="big num" id="td-need">—</span><small id="td-need-tax" hidden>（税込）</small></div>
+      <div class="t" id="td-need-sub" style="text-align:center"></div>
+    </div>
+  </section>
+
+  <!-- 今月 -->
+  <section id="v-month" class="stack" hidden>
+    <div class="card">
+      <h2>月の合計</h2>
+      <div class="ms-top" id="ms-top" hidden><div><span class="k">売上（税抜）</span><span class="v" id="ms-sales2">—</span></div><div><span class="k" id="ms-pay2-k">歩合</span><span class="v" id="ms-pay2">—</span></div></div>
+      <div class="ms-apps" id="ms-apps" hidden><div class="t">アプリ内訳</div>
+        <div class="approw"><div><span class="k">Uber</span><span class="v" id="ms-ap-uber">—</span><span class="c" id="ms-ac-uber" hidden></span></div><div><span class="k">GO</span><span class="v" id="ms-ap-go">—</span><span class="c" id="ms-ac-go" hidden></span></div><div><span class="k">DiDi</span><span class="v" id="ms-ap-didi">—</span><span class="c" id="ms-ac-didi" hidden></span></div><div><span class="k">配車その他</span><span class="v" id="ms-ap-other">—</span><span class="c" id="ms-ac-other" hidden></span></div></div></div>
+      <div class="pairs">
+        <div id="ms-sales-item"><span class="k">売上（税抜）</span><span class="v num" id="ms-sales">—</span></div>
+        <div id="ms-pay-item"><span class="k" id="ms-pay-k">歩合</span><span class="v num" id="ms-pay">—</span></div>
+        <div><span class="k">1日平均</span><span class="v num" id="ms-avg">—</span></div>
+        <div><span class="k" id="ms-13-k">1日の乗務時間あたり</span><span class="v num" id="ms-13">—</span></div>
+        <div><span class="k">時間平均単価</span><span class="v num" id="ms-hour">—</span></div>
+        <div><span class="k">営業回数</span><span class="v num" id="ms-rides">—</span></div>
+        <div><span class="k">客単価</span><span class="v num" id="ms-per">—</span></div>
+        <div><span class="k">乗務時間</span><span class="v num" id="ms-time">—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>今週の合計</h2>
+      <div class="t" id="wk-range"></div>
+      <div class="pairs">
+        <div><span class="k">売上</span><span class="v num" id="wk-sales">—</span></div>
+        <div><span class="k">時間平均単価</span><span class="v num" id="wk-hour">—</span></div>
+      </div>
+      <div class="ms-apps" id="wk-apps" hidden><div class="t">アプリ内訳</div>
+        <div class="approw"><div><span class="k">Uber</span><span class="v" id="wk-ap-uber">—</span><span class="c" id="wk-ac-uber" hidden></span></div><div><span class="k">GO</span><span class="v" id="wk-ap-go">—</span><span class="c" id="wk-ac-go" hidden></span></div><div><span class="k">DiDi</span><span class="v" id="wk-ap-didi">—</span><span class="c" id="wk-ac-didi" hidden></span></div><div><span class="k">配車その他</span><span class="v" id="wk-ap-other">—</span><span class="c" id="wk-ac-other" hidden></span></div></div></div>
+    </div>
+  </section>
+
+  <!-- 記録 -->
+  <section id="v-records" class="stack" hidden>
+    <div class="card">
+      <h2>日ごとの記録</h2>
+      <p class="t" style="margin:0">日報が入っている日を押すと、数字を直せます。</p>
+      <div class="mnav"><button type="button" id="rc-prev" aria-label="前の月度を見る">‹ 前月</button><span class="num" id="rc-label"></span><button type="button" id="rc-next" aria-label="次の月度を見る">翌月 ›</button></div>
+      <div class="tablewrap"><table class="dtable"><thead><tr><th scope="col">日付</th><th scope="col">売上</th><th scope="col">回数</th><th scope="col">平均単価</th><th scope="col">乗務時間</th><th scope="col">時間あたり</th><th scope="col" class="go" aria-hidden="true"></th></tr></thead><tbody id="rc-rows"></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>月度ごとの記録</h2>
+      <div class="tablewrap"><table class="mtable"><thead><tr><th scope="col">月度</th><th scope="col">売上合計</th><th scope="col">営業回数</th><th scope="col">時間あたり</th><th scope="col">客単価</th><th scope="col">乗務時間</th></tr></thead><tbody id="rc-mrows"></tbody><tfoot id="rc-mavg"></tfoot></table></div>
+      <p class="t" id="rc-mnote" style="margin:8px 0 0"></p>
+    </div>
+  </section>
+
+  <!-- 順位 -->
+  <section id="v-rank" class="stack" hidden>
+    <div>
+      <div class="seg" id="rk-mode" role="group" aria-label="日ごと・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日ごと</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
+      <div class="rk-row"><select id="rk-pref" aria-label="都道府県で分ける"></select>
+      <div class="sw" id="rk-shifts" role="group" aria-label="勤務で分ける"><button type="button" data-shift="昼勤" aria-pressed="true">昼勤</button><button type="button" data-shift="夜勤" aria-pressed="false">夜勤</button><button type="button" data-shift="隔日勤務" aria-pressed="false">隔勤</button></div></div>
+      <div class="sw" id="rk-metrics" role="group" aria-label="並べる数字"><button type="button" data-metric="hour" aria-pressed="true">時間平均単価</button><button type="button" data-metric="sales" aria-pressed="false">売上</button><button type="button" data-metric="rides" data-daily="1" aria-pressed="false">営業回数</button><button type="button" data-metric="long" data-daily="1" aria-pressed="false">ロング</button></div>
+      <div class="mnav" id="rk-day" style="margin:0"><button type="button" id="rk-prev">‹ 前の日</button><span class="num" id="rk-date"></span><button type="button" id="rk-next">次の日 ›</button></div>
+      <div class="t" id="rk-state" style="text-align:center;margin-top:2px" hidden></div>
+    </div>
+    <div class="card avgcard" id="rk-avg" hidden><div><span class="t" id="rk-avg-l">平均</span><small class="t" id="rk-avg-s"></small></div><b class="num" id="rk-avg-v"></b></div>
+    <div class="card" id="rk-card"><div class="t" id="rk-head">読み込んでいます</div><div id="rk-list"></div></div>
+    <p class="t" id="rk-note"></p>
+    <p class="t">昼勤・夜勤・隔勤のどの順位も見られます。名前は、それぞれが設定したニックネームです。</p>
+  </section>
+
+  <!-- 比較：自分と平均の折れ線 -->
+  <section id="v-compare" class="stack" hidden>
+    <div>
+      <div class="seg" id="cp-mode" role="group" aria-label="日ごと・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日ごと</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
+      <p class="t" id="cp-who" style="margin:0 0 8px"></p>
+      <div class="sw" id="cp-metrics" role="group" aria-label="比べる数字"><button type="button" data-metric="hour" aria-pressed="true">時間平均単価</button><button type="button" data-metric="sales" aria-pressed="false">売上</button><button type="button" data-metric="rides" aria-pressed="false">営業回数</button></div>
+      <div class="mnav" id="cp-term" style="margin:0"><button type="button" id="cp-prev">‹ 前の月度</button><span class="num" id="cp-label"></span><button type="button" id="cp-next">次の月度 ›</button></div>
+    </div>
+    <div class="card">
+      <p class="say" id="cp-say" role="status">読み込んでいます</p>
+      <div class="legend" id="cp-legend" hidden><span><svg width="28" height="12" aria-hidden="true"><rect class="cg-bm" x="9" y="1" width="10" height="10" rx="1"/></svg>あなた</span><span><svg width="28" height="12" aria-hidden="true"><line class="cg-a" x1="2" y1="6" x2="26" y2="6"/></svg>平均</span></div>
+      <div id="cp-chart"></div>
+    </div>
+    <div class="card" id="cp-tablecard" hidden>
+      <div class="tablewrap" style="margin-top:0"><table class="cptable"><thead><tr><th scope="col" id="cp-th0">日</th><th scope="col">あなた</th><th scope="col">平均</th><th scope="col">差</th></tr></thead><tbody id="cp-rows"></tbody></table></div>
+    </div>
+    <p class="t">平均は、あなたと同じ都道府県・勤務の人の日報で出しています（あなたも含みます）。都道府県と勤務は、設定の画面で変えられます。</p>
+  </section>
+
+  <!-- マイページ -->
+  <section id="v-my" class="stack" hidden>
+    <div class="card" style="padding-top:4px;padding-bottom:4px">
+      <button type="button" class="linkrow" id="my-set"><span>設定</span><span>›</span></button>
+      <button type="button" class="linkrow" id="my-fix" hidden><span>アプリ別の売上・件数を直す</span><span>›</span></button>
+    </div>
+    <div class="card"><div id="my-name" style="font-weight:700"></div><div class="t" id="my-line"></div></div>
+    <div class="card"><h2 style="font-size:14px">日報を送った日数</h2>
+      <div class="pairs"><div><span class="v num" id="my-days">—</span></div></div>
+      </div>
+    <div class="card" id="my-pod" hidden><h2 style="font-size:14px">1・2・3位の回数</h2>
+      <div class="t" id="my-pod-sub"></div><div id="my-pod-body"></div></div>
+    <div class="card"><h2 style="font-size:14px">自己ベスト</h2><div class="bl" id="my-best"></div></div>
+  </section>
+
+  <!-- 日報を送る -->
+  <section id="v-report" class="stack" hidden>
+    <div class="card" id="rp-pick">
+      <h2 id="rp-h">日報の写真を送る</h2>
+      <p class="t" id="rp-pickintro" style="margin:0 0 4px">日報全体が写るように撮ってください。数字を読み取って、次の画面で確かめてから保存します。</p>
+      <button type="button" class="btn wide" id="rp-cam">写真を撮る</button>
+      <button type="button" class="btn sub wide" id="rp-file">写真を選ぶ</button>
+      <button type="button" class="btn sub wide" id="rp-hand">写真を使わずに、手で入れる</button>
+      <button type="button" class="btn sub wide" id="rp-fix" hidden>アプリ別の売上・件数を直す</button>
+      <button type="button" class="btn sub wide" id="rp-cancel1" style="border:0">やめる</button>
+      <input type="file" accept="image/*" capture="environment" id="in-cam" hidden>
+      <input type="file" accept="image/*" id="in-file" hidden>
+      <p class="msg" id="rp-pickmsg" role="status"></p>
+    </div>
+    <div class="card center" id="rp-wait" hidden><p style="margin:8px 0"><span class="spin" aria-hidden="true"></span><span id="rp-waittext">写真を読み取っています（10秒ほどかかります）</span></p></div>
+    <!-- 写真を送ったあと：数字は変えられない表示（荒らし対策）。記録から開いた写真の日報も、アプリ別だけ直せる -->
+    <div id="rp-photo" class="stack" hidden>
+      <div class="card">
+        <h2 id="pp-title">読み取った数字が合っているか確かめてください</h2>
+        <img class="thumb" id="pp-thumb" alt="送った写真" hidden>
+        <div class="warn" id="pp-warn" hidden></div>
+        <div id="pp-ro"></div>
+      </div>
+      <div class="okwrap" id="pp-okwrap">
+        <label class="okbig"><input type="checkbox" id="pp-ok"><span>写真の日報と同じです</span></label>
+        <button type="button" class="linkbtn" id="pp-retake">違う所がある → 写真を撮り直す</button>
+      </div>
+      <p class="t" id="pp-fixnote" hidden style="margin:0">売上などが違う時は、写真を送り直してください。</p>
+      <div class="card" id="pp-appcard" hidden>
+        <h2 style="font-size:14px">アプリ別の売上・件数</h2>
+        <div class="t">どちらも入れなくても送信できます。</div>
+        <div id="pp-apps" style="margin-top:8px"></div>
+      </div>
+      <p class="msg" id="pp-msg" role="status"></p>
+      <div class="confirm" id="pp-confirm" hidden>
+        <b id="pp-confirm-t"></b>
+        <div class="row"><button type="button" class="btn" id="pp-over">置き換える</button><button type="button" class="btn sub" id="pp-keep">やめる</button></div>
+      </div>
+      <p class="hint1" id="pp-hint">上の「写真の日報と同じです」にチェックを入れると、送信できます</p>
+      <button type="button" class="btn wide" id="pp-send" style="margin-top:0">送信する</button>
+      <button type="button" class="btn sub wide" id="pp-cancel" style="border:0;margin-top:0">やめる</button>
+    </div>
+    <!-- あとから直す入口：日付を選ぶ -->
+    <div class="card" id="rp-rescue" hidden>
+      <h2>アプリ別の売上・件数を直す</h2>
+      <label class="f" for="rs-date" style="margin-top:4px">日付（日報が入っている日）</label>
+      <select id="rs-date"></select>
+      <button type="button" class="btn wide" id="rs-go">この日を直す</button>
+      <button type="button" class="btn sub wide" id="rs-cancel" style="border:0">もどる</button>
+    </div>
+    <div class="card" id="rp-check" hidden>
+      <h2 id="rp-title">読み取った数字を確かめてください</h2>
+      <p class="t" id="rp-manualnote" hidden style="margin:0 0 4px">手で入れた日報は、ランキングには入りませんが、全体の平均には入ります。</p>
+      <img class="thumb" id="rp-thumb" alt="送った写真" hidden>
+      <div class="warn" id="rp-warn" hidden></div>
+      <label class="f" for="rp-date">出庫日</label><input type="date" id="rp-date">
+      <div class="warn" id="rp-photonote" hidden style="margin-top:8px"></div>
+      <div class="t" id="rp-night" hidden style="margin-top:4px">夜中（6時より前）の出庫なので、前の日の日報にしています。</div>
+      <label class="f" for="rp-sales">税抜売上（円）</label><input type="text" id="rp-sales" inputmode="numeric" autocomplete="off">
+      <label class="f" for="rp-rides">営業回数（回）</label><input type="text" id="rp-rides" inputmode="numeric" autocomplete="off">
+      <label class="f" for="rp-time">乗務時間（時:分）</label><input type="time" id="rp-time">
+      <div id="rp-apps" hidden>
+        <label class="f">アプリ別の売上・件数</label>
+        <div class="t">各アプリの売上の画面を見て入れてください。空でもかまいません。</div>
+        <div id="rp-appgrid" style="margin-top:6px"></div>
+      </div>
+      <label class="f" for="rp-long">ロング：金額・乗車地 → 降車地（1回の乗車で一番高かった運賃。空でもよい）</label>
+      <input type="text" id="rp-long" inputmode="numeric" autocomplete="off" placeholder="金額（円）">
+      <div class="grid2" style="margin-top:8px"><input type="text" id="rp-from" autocomplete="off" maxlength="30" placeholder="乗車地 例 北区" aria-label="乗車地"><input type="text" id="rp-to" autocomplete="off" maxlength="30" placeholder="降車地 例 向日市" aria-label="降車地"></div>
+      <p class="msg" id="rp-msg" role="status"></p>
+      <div class="confirm" id="rp-confirm" hidden>
+        <b id="rp-confirm-t"></b>
+        <div class="row"><button type="button" class="btn" id="rp-over">上書きする</button><button type="button" class="btn sub" id="rp-keep">やめる</button></div>
+      </div>
+      <button type="button" class="btn wide" id="rp-save">保存する</button>
+      <button type="button" class="btn sub wide" id="rp-cancel2" style="border:0">やめる</button>
+    </div>
+  </section>
+  </main>
+</div>
+
+<nav class="tabbar" id="bar" aria-label="いつもの操作" hidden>
+  <button type="button" class="tb" id="b-home" aria-current="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>ホーム</button>
+  <button type="button" class="cam" id="b-send">日報を<br>送る</button>
+  <button type="button" class="tb" id="b-set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>マイページ</button>
+</nav>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+// ===== 裏のアドレス（設置の手順で、ここ1か所だけを書き換える） =====
+var API_URL='https://script.google.com/macros/s/AKfycbwmQLkN4ERPtQLRkhYiw6Hq7cadDD265pNA-hFpN9TTaSON1UKDsVfdFGukOkSzcCLzBw/exec';
+
+/*CALC-START（この部分は index.html と test.html で同じ内容。直す時は両方を同じに）*/
+var Calc=(function(){
+  var DAY=86400000;
+  function pad2(n){return (n<10?'0':'')+n}
+  function parseD(s){var p=s.split('-').map(Number);return new Date(Date.UTC(p[0],p[1]-1,p[2]))}
+  function isoD(d){return d.toISOString().slice(0,10)}
+  function addDays(iso,n){return isoD(new Date(parseD(iso).getTime()+n*DAY))}
+  function dow(iso){return parseD(iso).getUTCDay()}
+  function maxIso(a){var m=a[0];for(var i=1;i<a.length;i++)if(a[i]>m)m=a[i];return m}
+  function dim(y,m){return new Date(Date.UTC(y,m,0)).getUTCDate()}
+  function termEnd(y,m,c){return y+'-'+pad2(m)+'-'+pad2(Math.min(c,dim(y,m)))}
+
+  // 月度：「前の月の締め日の次の日」〜「その月の締め日」。名前は終わりの月
+  function termFor(y,m,c){
+    var py=m===1?y-1:y,pm=m===1?12:m-1;
+    return {id:y+'-'+pad2(m),y:y,m:m,label:m+'月度',start:addDays(termEnd(py,pm,c),1),end:termEnd(y,m,c)};
+  }
+  function termOf(iso,c){
+    var y=+iso.slice(0,4),m=+iso.slice(5,7),d=+iso.slice(8,10);
+    if(d>Math.min(c,dim(y,m))){if(m===12){y++;m=1}else m++}
+    return termFor(y,m,c);
+  }
+  function termById(id,c){return termFor(+id.slice(0,4),+id.slice(5,7),c)}
+
+  // 日本時間の「今」：now は Date.now() のような数。日付と、その日の何分かを返す
+  function jstNow(ms){var d=new Date(ms+9*3600000);return {iso:isoD(d),min:d.getUTCHours()*60+d.getUTCMinutes()}}
+
+  // 今日の売上の時間の数え方（今のダッシュボードの shiftMath と同じ）
+  function toM(t){var m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?Number(m[1])*60+Number(m[2]):null}
+  function shiftMath(s,nowM){
+    var dep=toM(s.dep),ret=toM(s.ret);
+    if(dep===null||ret===null)return null;
+    if(ret<=dep)ret+=1440;
+    var now=nowM,crossed=false;
+    if(now<dep&&now+1440<=ret){now+=1440;crossed=true}
+    var left=now<dep?ret-dep:ret-now;
+    return {left:left,crossed:crossed,elapsed:now<dep?(ret>1440&&now+1440>ret?ret-dep:0):Math.min(now,ret)-dep};
+  }
+  // 「今日」にあたる日付。出庫したまま日をまたいだ後は、前の日にする
+  function todayKey(st,ms){
+    var n=jstNow(ms),m=shiftMath(st||{},n.min);
+    return m&&m.crossed?addDays(n.iso,-1):n.iso;
+  }
+
+  // 「25,000」「2万5000円」「二万五千円です」のような書き方・言い方を数字にする
+  var KD={'〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+  var KU={'十':10,'百':100,'千':1000};
+  function parseAmount(v){
+    var t=String(v==null?'':v).replace(/[０-９．]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248)}).replace(/[^0-9.〇零一二三四五六七八九十百千万]/g,'');
+    if(!t||!/[0-9〇零一二三四五六七八九十百千]/.test(t))return null;
+    var total=0,sect=0,cur=null,i=0;
+    while(i<t.length){
+      var c=t[i];
+      if(/[0-9.]/.test(c)){var s=i;while(i<t.length&&/[0-9.]/.test(t[i]))i++;cur=Number(t.slice(s,i));if(!Number.isFinite(cur))return null;continue}
+      if(c in KD)cur=(cur||0)*10+KD[c];
+      else if(c in KU){sect+=(cur===null?1:cur)*KU[c];cur=null}
+      else if(c==='万'){total+=(sect+(cur||0))*10000;sect=0;cur=null}
+      i++;
+    }
+    var n=total+sect+(cur||0);
+    return Number.isFinite(n)&&n>=0?Math.round(n):null;
+  }
+
+  // 1か月度ぶんの数字。days は {date,sales,rides,minutes} の並び（今の月度の日報だけ）
+  // p: {days, term, goal, planDays, today(日付), set:{rate,dayHours,mode,limitHours}}
+  function summary(p){
+    var days=p.days||[],t=p.term,set=p.set;
+    var sales=0,rides=0,minutes=0,last=null;
+    days.forEach(function(d){sales+=d.sales;rides+=d.rides||0;minutes+=d.minutes||0;if(!last||d.date>last)last=d.date});
+    var worked=days.length,r={sales:sales,rides:rides,minutes:minutes,worked:worked,last:last};
+    r.pay=sales*set.rate;
+    r.avgDay=worked?sales/worked:null;
+    r.hourAvg=minutes?sales/(minutes/60):null;
+    r.per13=minutes?sales/(minutes/60)*13:null;
+    r.limitMin=Math.round(set.limitHours*60);
+    r.leftMin=Math.max(0,r.limitMin-minutes);
+    r.plan=p.planDays;
+    r.remainPlan=Math.max(0,p.planDays-worked);
+    // 締め日までの日数（今のダッシュボードの数え方）
+    var lastDate=last||addDays(t.start,-1);
+    r.from=maxIso([addDays(lastDate,1),p.today,t.start]);
+    r.calRemain=Math.max(0,Math.round((parseD(t.end)-parseD(r.from))/DAY)+1);
+    // 残りの日数
+    r.hDays=Math.floor(r.leftMin/(set.dayHours*60)*10+1e-9)/10;
+    if(set.mode==='hours'){
+      if(minutes>0){r.remain=Math.min(r.calRemain,r.hDays);r.byCal=r.calRemain<r.hDays}
+      else{r.remain=r.calRemain;r.byCal=false}
+    }else{
+      if(r.remainPlan>=1){r.remain=Math.min(r.remainPlan,r.calRemain);r.byCal=r.calRemain<r.remainPlan}
+      else{r.remain=r.calRemain;r.byCal=true}
+    }
+    // 進捗達成率の元になる、月末の見込み
+    r.forecast=set.mode==='hours'?(minutes?sales/minutes*r.limitMin:null):(worked?sales/worked*p.planDays:null);
+    var goal=p.goal>0?p.goal:null;
+    r.goal=goal;r.rest=null;r.rateMonth=null;r.rateProgress=null;r.needHour=null;r.targetToday=null;
+    if(goal){
+      r.rest=goal-sales;
+      r.rateMonth=sales/goal;
+      r.rateProgress=r.forecast==null?null:r.forecast/goal;
+      r.needHour=r.rest>0&&r.leftMin>0?Math.ceil(r.rest/(r.leftMin/60)):null;
+      r.targetToday=r.rest>0&&r.remain>0?Math.ceil(r.rest/r.remain):null;
+    }
+    // 今週（水曜〜火曜）。区切りは今のダッシュボードと同じ
+    var ref=last&&last>t.start?last:t.start;
+    var wsd=set.weekStart==null?3:set.weekStart; // 週の始まりの曜日（0=日〜6=土。無い時は水曜）
+    var back=(dow(ref)-wsd+7)%7;
+    var ws=addDays(ref,-back),we=addDays(ws,6);
+    if(ws<t.start)ws=t.start;
+    if(we>t.end)we=t.end;
+    var wSales=0,wRides=0;
+    days.forEach(function(d){if(d.date>=ws&&d.date<=we){wSales+=d.sales;wRides+=d.rides||0}});
+    r.week={start:ws,end:we,sales:wSales,rides:wRides};
+    return r;
+  }
+
+  // 月度のアプリ別の合計（空は0として足す。enabled が偽なら出さない＝null。別の月度の日報は入らない）
+  function appTotals(reports,start,end,enabled){
+    if(!enabled)return null;
+    var t={uber:0,go:0,didi:0,other:0,nUber:0,nGo:0,nDidi:0,nOther:0,hasCount:false};
+    reports.forEach(function(r){
+      if(r.date<start||r.date>end)return;
+      t.uber+=r.appUber||0;t.go+=r.appGo||0;t.didi+=r.appDidi||0;t.other+=r.appOther||0;
+      t.nUber+=r.cntUber||0;t.nGo+=r.cntGo||0;t.nDidi+=r.cntDidi||0;t.nOther+=r.cntOther||0;
+      if(r.cntUber!=null||r.cntGo!=null||r.cntDidi!=null||r.cntOther!=null)t.hasCount=true;
+    });
+    return t;
+  }
+  // 写真の日報を送信する時：保存するのは、裏がおぼえている読み取りの結果だけ。画面から来た売上などの数字は使わない（アプリ別の売上・件数だけ受け取る）
+  function reportFromTicket(ticket,screen){
+    var s=screen||{};
+    return {date:ticket.date,sales:ticket.sales,rides:ticket.rides,minutes:ticket.minutes,longFare:ticket.longFare,longFrom:ticket.longFrom,longTo:ticket.longTo,manual:false,
+      appUber:s.appUber,appGo:s.appGo,appDidi:s.appDidi,appOther:s.appOther,cntUber:s.cntUber,cntGo:s.cntGo,cntDidi:s.cntDidi,cntOther:s.cntOther};
+  }
+  // 本日の売上目標の根拠の文（残りの日数がどれで決まったかに合わせる）。目標が出ていない時は null
+  function basisText(s,set,term){
+    if(s.targetToday==null)return null;
+    var yenS=function(n){return Math.round(n).toLocaleString('ja-JP')+'円'};
+    var fd=function(n){return (Number.isInteger(n)?String(n):n.toFixed(1))+'日'};
+    var head='残りの売上 '+yenS(s.rest)+' ÷ ';
+    if(set.mode==='hours'&&s.minutes>0&&!s.byCal){
+      var h=Math.floor(s.leftMin/60),mm=s.leftMin%60;
+      return head+'残り乗務可能時間 '+h+'時間'+(mm?mm+'分':'')+' ÷ 1日 '+set.dayHours+'時間 ＝ '+fd(s.remain);
+    }
+    if(set.mode!=='hours'&&s.remainPlan>=1&&!s.byCal)return head+'残り出勤予定日数 '+s.remain+'日';
+    var e=parseD(term.end);
+    return head+'締め日（'+(e.getUTCMonth()+1)+'/'+e.getUTCDate()+'）までの '+fd(s.remain);
+  }
+  // 今日だけ手で入れた目標があれば、それを使う（空・0・数字でない時は、計算で出した目標）
+  function effectiveTarget(auto,manualText){
+    var n=parseAmount(manualText);
+    return n!==null&&n>0?{target:n,manual:true}:{target:auto,manual:false};
+  }
+  // 今日の進み具合と、必要な1時間あたり（税抜）。m は shiftMath の結果
+  function todayNeed(target,sales,m){
+    if(target==null||sales==null)return null;
+    var rest=target-sales,r={rest:rest,ratio:sales/target,perHour:null};
+    if(rest>0&&m&&m.left>0)r.perHour=Math.ceil(rest/(m.left/60));
+    return r;
+  }
+
+  // 平均単価・時間あたりは、回数・乗務時間が入っている日だけで割る（今のダッシュボードの monthSum と同じ）
+  function monthSum(days){
+    var sales=0,rSales=0,rides=0,hSales=0,mins=0,allRides=true;
+    days.forEach(function(d){
+      sales+=d.sales;
+      if(d.rides!=null){rSales+=d.sales;rides+=d.rides}else allRides=false;
+      if(d.minutes){hSales+=d.sales;mins+=d.minutes}
+    });
+    return {sales:sales,rides:rides,avg:rides?rSales/rides:null,hour:mins?hSales/(mins/60):null,allRides:allRides,time:mins||null,count:days.length};
+  }
+
+  // 日報の全部を月度ごとに分ける。いまの月度は、日報が無くても入れる。新しい月度が先
+  function groupTerms(reports,c,todayIso){
+    var map={};
+    reports.forEach(function(d){
+      var t=termOf(d.date,c);
+      if(!map[t.id])map[t.id]={term:t,days:[]};
+      map[t.id].days.push(d);
+    });
+    var cur=termOf(todayIso,c);
+    if(!map[cur.id])map[cur.id]={term:cur,days:[]};
+    return Object.keys(map).sort().reverse().map(function(k){
+      var g=map[k];g.days.sort(function(a,b){return a.date<b.date?-1:1});return g;
+    });
+  }
+
+
+  // 日ごとの順位。entries は {who,shift,date,sales,rides,minutes,longFare,longFrom,longTo,me} の並び（日報1件ずつ）
+  // o: {shift,date,metric('hour'|'sales'|'rides'|'long')}。同じ人は1回まで（一番高い1件）。ロングはベスト10まで
+  function rankValue(e,metric){
+    if(metric==='hour')return e.minutes>0?e.sales/(e.minutes/60):null;
+    if(metric==='sales')return e.sales==null?null:e.sales;
+    if(metric==='rides')return e.rides==null?null:e.rides;
+    if(metric==='long')return e.longFare>0?e.longFare:null;
+    return null;
+  }
+  // 都道府県で絞る（o.pref が空か「全国」なら、全員）
+  function inPref(e,pref){return !pref||pref==='全国'||e.pref===pref}
+  // 平均の行。items は 並んでいる人の {v,sales,minutes}。0人なら null
+  function average(items,metric){
+    if(!items.length)return null;
+    var n=items.length,v;
+    if(metric==='hour'){
+      var s=0,m=0;
+      items.forEach(function(x){if(x.minutes>0){s+=x.sales;m+=x.minutes}});
+      if(!(m>0))return null;
+      v=Math.round(s/(m/60));
+    }else{
+      var t=0;items.forEach(function(x){t+=x.v});
+      v=metric==='rides'?Math.round(t/n*10)/10:Math.round(t/n);
+    }
+    return {value:v,n:n};
+  }
+  // ありえない数字の日報は、平均に入れない：1日の税抜売上が20万円を超える・乗務時間が24時間を超える・時間平均単価が1万5千円を超える（ちょうどは入る）
+  function plausible(e){
+    var m=e.minutes||0;
+    return e.sales<=200000&&m<=1440&&!(m>0&&e.sales*60>15000*m);
+  }
+  // 1日ぶんの平均。平均に入れるのは、手で入れた日報も含む全部（ただし、ありえない数字は外す）。entries は平均に使う数字の日報
+  function avgOneDay(entries,o){
+    var g={};
+    entries.forEach(function(e){
+      if(e.shift!==o.shift||e.date!==o.date||!inPref(e,o.pref)||!plausible(e))return;
+      if(!g[e.who])g[e.who]=e;
+    });
+    return groupAvg(Object.keys(g).map(function(k){return g[k]}),o.metric);
+  }
+  // 月度ぶんの平均。人ごとに合計してから平均（嘱託は、売上と営業回数の平均から外す）
+  function avgOneMonth(entries,o,start,end){
+    var by={};
+    entries.forEach(function(e){
+      if(e.shift!==o.shift||!inPref(e,o.pref)||e.date<start||e.date>end||!plausible(e))return;
+      var b=by[e.who]||(by[e.who]={sales:0,minutes:0,rides:null,kt:!!e.kt});
+      b.sales+=e.sales;b.minutes+=e.minutes||0;
+      if(e.rides!=null)b.rides=(b.rides||0)+e.rides;
+    });
+    var ppl=Object.keys(by).map(function(k){return by[k]}).filter(function(b){return o.metric==='hour'||!b.kt});
+    return groupAvg(ppl,o.metric);
+  }
+  var valueN=function(g){return g?{value:g.value,n:g.n}:null};
+  function dailyRank(entries,o){
+    var people={},best={},n=0;
+    entries.forEach(function(e){
+      if(e.manual||e.shift!==o.shift||e.date!==o.date||!inPref(e,o.pref))return;
+      if(!people[e.who]){people[e.who]=true;n++}
+      var v=rankValue(e,o.metric);
+      if(v==null)return;
+      if(!best[e.who]||v>best[e.who].v)best[e.who]={e:e,v:v};
+    });
+    var list=Object.keys(best).map(function(k){return best[k]}).sort(function(a,b){return b.v-a.v});
+    if(o.metric==='long')list=list.slice(0,10);
+    // 平均（ロングには出さない）：手で入れた日報も入れる。o.avgEntries があればそれ（平均に使う数字）、無ければ entries
+    var avg=null;
+    if(o.metric!=='long')avg=valueN(avgOneDay(o.avgEntries||entries,o));
+    var rows=[];
+    list.forEach(function(x,i){
+      var rank=i>0&&list[i-1].v===x.v?rows[i-1].rank:i+1;
+      var r={rank:rank,who:x.e.who,value:Math.round(x.v),me:!!x.e.me};
+      if(o.metric==='long'){r.from=x.e.longFrom||'';r.to=x.e.longTo||''}
+      rows.push(r);
+    });
+    return {count:n,rows:rows,avg:avg};
+  }
+  // その勤務の人の日報がある、一番新しい日（上限 max 以下）と、一番古い日
+  function dateRange(entries,shift,max,pref){
+    var first=null,latest=null;
+    entries.forEach(function(e){
+      if(e.manual||e.shift!==shift||(max&&e.date>max)||!inPref(e,pref))return;
+      if(!first||e.date<first)first=e.date;
+      if(!latest||e.date>latest)latest=e.date;
+    });
+    return {first:first,latest:latest};
+  }
+
+  // 月間の順位。o: {shift,pref,start,end,metric('hour'|'sales')}。count は、その都道府県・勤務の参加者の数（日報の有無に関わらず）
+  function monthRank(entries,o){
+    var by={},who={};
+    entries.forEach(function(e){
+      if(e.manual||e.shift!==o.shift||!inPref(e,o.pref))return;
+      who[e.who]=true;
+      if(e.date<o.start||e.date>o.end)return;
+      var b=by[e.who]||(by[e.who]={who:e.who,sales:0,minutes:0,me:!!e.me,kt:!!e.kt});
+      b.sales+=e.sales;b.minutes+=e.minutes||0;
+    });
+    var list=Object.keys(by).map(function(k){var b=by[k];b.v=o.metric==='hour'?(b.minutes>0?b.sales/(b.minutes/60):null):b.sales;return b}).filter(function(b){return b.v!=null}).sort(function(a,b){return b.v-a.v});
+    var rows=[];
+    list.forEach(function(x,i){rows.push({rank:i>0&&list[i-1].v===x.v?rows[i-1].rank:i+1,who:x.who,value:Math.round(x.v),me:x.me})});
+    // 月間の平均：売上は嘱託を外す（嘱託は月の出勤できる日数が限られるため）。時間平均単価には入れる。人数は、その平均に入れた人数
+    return {count:Object.keys(who).length,rows:rows,avg:valueN(avgOneMonth(o.avgEntries||entries,o,o.start,o.end))};
+  }
+  var PREFS=['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+
+  // ===== 比較（自分と平均の折れ線） =====
+  // 今の月度から前へ n 個の月度（古い順）
+  function termList(todayIso,c,n){
+    var t=termOf(todayIso,c),y=t.y,m=t.m,out=[];
+    for(var i=0;i<n;i++){out.unshift(termFor(y,m,c));if(m===1){y--;m=12}else m--}
+    return out;
+  }
+  function metricVal(x,metric){
+    if(metric==='hour')return x.minutes>0?x.sales/(x.minutes/60):null;
+    if(metric==='sales')return x.sales;
+    if(metric==='rides')return x.rides==null?null:x.rides;
+    return null;
+  }
+  // 人ごとの数字 people:[{sales,minutes,rides}] から平均。時間平均単価は 売上の合計÷乗務時間の合計。t・m は合計（ひとこと用）
+  function groupAvg(people,metric){
+    var n=0,s=0,m=0,t=0;
+    people.forEach(function(x){
+      var v=metricVal(x,metric);
+      if(v==null)return;
+      n++;
+      if(metric==='hour'){s+=x.sales;m+=x.minutes}else t+=v;
+    });
+    if(!n)return null;
+    if(metric==='hour')return {value:Math.round(s/(m/60)),n:n,t:s,m:m};
+    var val=t/n;
+    return {value:metric==='rides'?Math.round(val*10)/10:Math.round(val),n:n,t:t,m:0};
+  }
+  // 日ごとの平均。entries は順位と同じ（日報1件ずつ）。o:{shift,pref,metric,start,end}。日報の無い日は avg:null
+  function avgDaily(entries,o){
+    var out=[],d=o.start;
+    while(d<=o.end){
+      out.push({date:d,avg:avgOneDay(entries,{shift:o.shift,pref:o.pref,date:d,metric:o.metric})});
+      d=addDays(d,1);
+    }
+    return out;
+  }
+  // 月度ごとの平均（最大12か月度、古い順）。人ごとに月度の合計を出してから平均する
+  function avgMonths(entries,o){
+    return termList(o.today,o.closeDay,12).map(function(t){
+      return {id:t.id,label:t.label,start:t.start,end:t.end,avg:avgOneMonth(entries,o,t.start,t.end)};
+    });
+  }
+  // 自分の日ごと：日付 → {v,sales,minutes,rides}。出していない日は入らない
+  function meDaily(reports,metric,start,end){
+    var out={};
+    reports.forEach(function(r){
+      if(r.date<start||r.date>end)return;
+      var v=metricVal(r,metric);
+      if(v!=null)out[r.date]={v:v,sales:r.sales,minutes:r.minutes||0,rides:r.rides};
+    });
+    return out;
+  }
+  // 自分の月度ごと：terms（termList の結果）の順に、値か null
+  function meMonths(reports,metric,terms){
+    return terms.map(function(t){
+      var s=0,m=0,rd=null,any=false;
+      reports.forEach(function(r){
+        if(r.date<t.start||r.date>t.end)return;
+        any=true;s+=r.sales;m+=r.minutes||0;
+        if(r.rides!=null)rd=(rd||0)+r.rides;
+      });
+      return any?metricVal({sales:s,minutes:m,rides:rd},metric):null;
+    });
+  }
+  // 日ごとのひとこと用：自分が出した日（平均もある日）で、自分と平均を同じ式でまとめる
+  function compareSummary(me,items,metric){
+    var days=0,ms=0,mm=0,mv=0,mn=0,at=0,am=0,an=0;
+    items.forEach(function(it){
+      var x=me[it.date];
+      if(!x||!it.avg)return;
+      days++;
+      ms+=x.sales;mm+=x.minutes;mv+=x.v;mn++;
+      at+=it.avg.t;am+=it.avg.m;an+=it.avg.n;
+    });
+    if(!days)return null;
+    if(metric==='hour'){if(!(mm>0)||!(am>0))return null;return {days:days,me:ms/(mm/60),avg:at/(am/60)}}
+    return {days:days,me:mv/mn,avg:at/an};
+  }
+  // 差と％。表示の数字（四捨五入した値）どうしで引く。平均が0なら％は無し
+  function diffOf(me,avg,metric){
+    if(me==null||avg==null)return null;
+    var rm=metric==='rides'?Math.round(me*10)/10:Math.round(me),ra=metric==='rides'?Math.round(avg*10)/10:Math.round(avg);
+    var d=Math.round((rm-ra)*10)/10;
+    return {d:d,pct:ra!==0?Math.round(d/ra*100):null};
+  }
+  // グラフの縦軸の目盛り（3〜5本）
+  function niceTicks(min,max){
+    if(!(max>min)){var c=max||1;min=c*0.9;max=c*1.1}
+    var raw=(max-min)/3,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,nf=f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10,step=nf*p;
+    var lo=Math.floor(min/step+1e-9)*step,hi=Math.ceil(max/step-1e-9)*step;
+    if(min>=0&&lo<0)lo=0;
+    var ticks=[];
+    for(var v=lo;v<=hi+step/1000;v+=step)ticks.push(Math.round(v*1000)/1000);
+    return {ticks:ticks,lo:ticks[0],hi:ticks[ticks.length-1]};
+  }
+
+
+  // ===== ランキングの締め切りと確定 =====
+  // 日本時間の「今」を 'YYYY-MM-DD HH:MM:SS' の文字にする（日付の境目が1日ずれないよう、日本時間に直してから切り出す）
+  function jstStamp(ms){var d=new Date(ms+9*3600000),s=d.toISOString();return s.slice(0,10)+' '+s.slice(11,19)}
+  // 出庫日 X の日報の締め切り＝X の2日後の午前0時（日本時間）。ちょうど0:00に送った物は、締め切りのあと
+  function deadlineOf(date){return addDays(date,2)+' 00:00:00'}
+  function isLate(sentStamp,date){return sentStamp>=deadlineOf(date)}
+  // その日の順位が確定しているか。closeAt は「11/12 0:00」の形
+  function rankState(date,nowStamp){
+    var c=deadlineOf(date),d=parseD(c.slice(0,10));
+    return {final:nowStamp>=c,closeAt:(d.getUTCMonth()+1)+'/'+d.getUTCDate()+' 0:00'};
+  }
+  // 日報を送った時の、順位に使う数字の更新。
+  // old：今ある日報（無ければ null）{manual,rankIn,rank,sales,rides,minutes,longFare,longFrom,longTo}。core：新しい数字
+  function rankUpdate(old,core,sentStamp,date,newManual){
+    var pick=function(x){return {sales:x.sales,rides:x.rides,minutes:x.minutes,longFare:x.longFare==null?null:x.longFare,longFrom:x.longFrom||'',longTo:x.longTo||''}};
+    var late=isLate(sentStamp,date);
+    if(!old||(old.manual&&!newManual))return late?{inRank:false,rank:null}:{inRank:true,rank:pick(core)}; // 初めて送る（手入力を写真で置き換える時も）：締め切りのあとなら入れない
+    if(old.rankIn===false)return {inRank:false,rank:null};
+    if(!late)return {inRank:true,rank:pick(core)};                                          // 締め切りの前の送り直し：新しい数字
+    return {inRank:true,rank:old.rank||pick(old)};                                          // 締め切りのあとの送り直し：順位に使う数字は変えない
+  }
+  // 順位に使う日報の数字（順位に入らない日報は null）。順位に使う数字を持っていない昔の日報は、今の数字
+  function rankEntry(r){
+    if(r.manual||r.rankIn===false)return null;
+    var s=r.rank||r;
+    return {sales:s.sales,rides:s.rides,minutes:s.minutes,longFare:s.longFare==null?null:s.longFare,longFrom:s.longFrom||'',longTo:s.longTo||''};
+  }
+  // 平均に使う日報の数字（手で入れた日報も入る。初めて締め切りのあとに送った物は null）
+  function avgEntry(r){
+    if(r.rankIn===false)return null;
+    var s=r.rank||r;
+    return {sales:s.sales,rides:s.rides,minutes:s.minutes,longFare:s.longFare==null?null:s.longFare,longFrom:s.longFrom||'',longTo:s.longTo||''};
+  }
+  // 見られるタブと使える操作（日報の種類としてランキングに参加しているか、で決まる）
+  // 自動日報で参加する人：順位も比較も／自動日報で参加しない人：比較だけ／手書き日報の人：順位も比較も見られる（見るだけ。参加はできない）
+  function tabAccess(me){
+    var hand=me&&me.reportType==='手書き日報';
+    return {rank:!!(me&&(me.rankJoin||hand)),compare:true,photo:!hand,canJoin:!hand};
+  }
+
+  // ===== マイページ =====
+  // 自分の日報だけから出す記録。reports は自分の日報（手入力も入る）。closeDay は自分の締め日
+  function myStats(reports,closeDay,todayIso){
+    var out={sentDays:0,bestSales:null,bestHour:null,bestRides:null,bestLong:null,bestMonth:null},months={};
+    reports.forEach(function(r){
+      out.sentDays++;
+      if(!out.bestSales||r.sales>out.bestSales.value)out.bestSales={value:r.sales,date:r.date};
+      if(r.minutes>0){var h=r.sales/(r.minutes/60);if(!out.bestHour||h>out.bestHour.value)out.bestHour={value:h,date:r.date}}
+      if(r.rides!=null&&(!out.bestRides||r.rides>out.bestRides.value))out.bestRides={value:r.rides,date:r.date};
+      if(r.longFare>0&&(!out.bestLong||r.longFare>out.bestLong.value))out.bestLong={value:r.longFare,date:r.date,from:r.longFrom||'',to:r.longTo||''};
+      var t=termOf(r.date,closeDay),m=months[t.id]||(months[t.id]={term:t,sales:0});m.sales+=r.sales;
+    });
+    Object.keys(months).forEach(function(k){var m=months[k];if(!out.bestMonth||m.sales>out.bestMonth.value)out.bestMonth={value:m.sales,term:m.term}});
+    return out;
+  }
+  // 1・2・3位の回数（自分の分だけ）。entries は順位に使う数字の日報（ほかの人の分も含む。自分は me:true）。
+  // 確定した日（日ごと）と、終わった月度（月間）だけ。同じ順位が並んだ時は、並んだ全員に数える
+  // o:{shift,pref,nowStamp,today,closeDay}。shift・pref は自分の今の設定
+  function podiumCounts(entries,o){
+    var out={daily:{hour:[0,0,0],sales:[0,0,0],rides:[0,0,0],long:[0,0,0]},month:{hour:[0,0,0],sales:[0,0,0]}},dates={},terms={};
+    entries.forEach(function(e){
+      if(!e.me||e.manual||e.shift!==o.shift||!inPref(e,o.pref))return;
+      dates[e.date]=true;var t=termOf(e.date,o.closeDay);terms[t.id]=t;
+    });
+    Object.keys(dates).forEach(function(d){
+      if(!rankState(d,o.nowStamp).final)return;                 // 確定する前の日は数えない
+      ['hour','sales','rides','long'].forEach(function(m){
+        dailyRank(entries,{shift:o.shift,date:d,metric:m,pref:o.pref}).rows.forEach(function(x){if(x.me&&x.rank<=3)out.daily[m][x.rank-1]++});
+      });
+    });
+    Object.keys(terms).forEach(function(id){
+      var t=terms[id];
+      if(!(t.end<o.today))return;                               // 終わっていない月度（今の月度）は数えない
+      ['hour','sales'].forEach(function(m){
+        monthRank(entries,{shift:o.shift,pref:o.pref,start:t.start,end:t.end,metric:m}).rows.forEach(function(x){if(x.me&&x.rank<=3)out.month[m][x.rank-1]++});
+      });
+    });
+    return out;
+  }
+  return {plausible:plausible,avgEntry:avgEntry,myStats:myStats,podiumCounts:podiumCounts,tabAccess:tabAccess,jstStamp:jstStamp,deadlineOf:deadlineOf,isLate:isLate,rankState:rankState,rankUpdate:rankUpdate,rankEntry:rankEntry,reportFromTicket:reportFromTicket,appTotals:appTotals,basisText:basisText,effectiveTarget:effectiveTarget,todayNeed:todayNeed,termList:termList,groupAvg:groupAvg,avgDaily:avgDaily,avgMonths:avgMonths,meDaily:meDaily,meMonths:meMonths,compareSummary:compareSummary,diffOf:diffOf,niceTicks:niceTicks,PREFS:PREFS,monthRank:monthRank,dailyRank:dailyRank,dateRange:dateRange,addDays:addDays,parseD:parseD,isoD:isoD,dow:dow,termOf:termOf,termById:termById,termFor:termFor,jstNow:jstNow,shiftMath:shiftMath,todayKey:todayKey,parseAmount:parseAmount,summary:summary,monthSum:monthSum,groupTerms:groupTerms,DAY:DAY};
+})();
+/*CALC-END*/
+
+// ===== ここから下は画面（計算は上の Calc を使う） =====
+(function(){
+  var DEMO=/[?&]demo=1(&|$)/.test(location.search);
+  var WD=['日','月','火','水','木','金','土'];
+  var $=function(id){return document.getElementById(id)};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+  var yen=function(n){return Math.round(n).toLocaleString('ja-JP')+'円'};
+  var pct=function(r){return Math.round(r*100)+'%'};
+  var pad2=function(n){return (n<10?'0':'')+n};
+  var hmJp=function(m){m=Math.round(m);return Math.floor(m/60)+'時間'+(m%60?pad2(m%60)+'分':'')};
+  var hmShort=function(m){m=Math.round(m);return Math.floor(m/60)+':'+pad2(m%60)};
+  var fmtD=function(n){return (Number.isInteger(n)?String(n):n.toFixed(1))+'日'};
+  var dlabel=function(iso){var d=Calc.parseD(iso);return (d.getUTCMonth()+1)+'/'+d.getUTCDate()+'（'+WD[d.getUTCDay()]+'）'};
+  var dlabel2=function(iso){var d=Calc.parseD(iso);return (d.getUTCMonth()+1)+'/'+d.getUTCDate()+' '+WD[d.getUTCDay()]};
+  var mdLabel=function(iso){var d=Calc.parseD(iso);return (d.getUTCMonth()+1)+'/'+d.getUTCDate()};
+  // 全角の数字や「，」も数に直す（空は null、数でない時は NaN）
+  function toNum(s){
+    var t=String(s==null?'':s).replace(/[０-９．]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-65248)}).replace(/[,，円\s]/g,'');
+    if(t==='')return null;
+    return /^\d+(\.\d+)?$/.test(t)?Number(t):NaN;
+  }
+
+  // ===== 状態 =====
+  var K='';
+  document.body.classList.add('ui-a'); // 順位の数字は下線のタブ（2026-11-18 本人がA案に決めた）
+  var S={me:null,reports:[],terms:{},today:{dep:'',ret:'',sales:'',goal:'',date:''},tab:'month',viewTerm:null,
+    rank:{mode:'daily',pref:null,shift:null,metric:'hour',date:null,data:null,loading:false},cmp:{mode:'daily',pref:null,shift:null,metric:'hour',termId:null,data:null,loading:false},view:'msg',firstTime:false,loadedAt:0,micMsg:''};
+
+  function showToast(t){
+    var el=$('toast');el.textContent=t;el.hidden=false;
+    clearTimeout(showToast.h);showToast.h=setTimeout(function(){el.hidden=true},2800);
+  }
+  function showBanner(t){
+    var b=$('banner');b.textContent=t;b.hidden=false;
+    clearTimeout(showBanner.h);showBanner.h=setTimeout(function(){b.hidden=true},5000);
+  }
+  function setMsg(el,text,err){el.textContent=text||'';el.className='msg'+(err?' err':'')}
+
+  // ===== 裏とのやり取り =====
+  function api(action,data){
+    if(DEMO)return Demo.call(action,data||{});
+    if(API_URL.indexOf('【')>=0)return Promise.reject(Object.assign(new Error('設置がまだ終わっていません（裏のアドレスが入っていません）。'),{fatal:true}));
+    var ctrl=new AbortController(),to=setTimeout(function(){ctrl.abort()},action==='read'?90000:30000);
+    var body=JSON.stringify(Object.assign({action:action,k:K},data||{}));
+    return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body,signal:ctrl.signal})
+      .then(function(r){return r.json()})
+      .then(function(j){
+        clearTimeout(to);
+        if(!j||!j.ok){var e=new Error(j&&j.message?j.message:'うまくいきませんでした。もう一度お試しください。');e.code=j&&j.error;throw e}
+        return j;
+      },function(){
+        clearTimeout(to);
+        throw new Error('つながりませんでした。電波の良い所で、もう一度お試しください。');
+      });
+  }
+
+  // ===== 数字の組み立て =====
+  function todayIso(){return Calc.todayKey(S.today,Date.now())}
+  function curTerm(){return Calc.termOf(todayIso(),S.me.closeDay)}
+  function defaultPlan(){
+    var best=null;
+    Object.keys(S.terms).forEach(function(id){if(S.terms[id].planDays!=null&&(!best||id>best))best=id});
+    return best?S.terms[best].planDays:23;
+  }
+  function termDoc(id){
+    var d=S.terms[id]||{};
+    return {goal:d.goal>0?d.goal:null,planDays:d.planDays!=null?d.planDays:defaultPlan()};
+  }
+  function daysOfTerm(t){return S.reports.filter(function(d){return d.date>=t.start&&d.date<=t.end})}
+  function curSummary(){
+    var t=curTerm(),doc=termDoc(t.id);
+    return {t:t,doc:doc,s:Calc.summary({days:daysOfTerm(t),term:t,goal:doc.goal,planDays:doc.planDays,today:todayIso(),set:S.me})};
+  }
+
+  // ===== 画面の切り替え =====
+  var VIEWS=['msg','setup','today','month','records','rank','compare','my','report'];
+  function show(view){
+    S.view=view;
+    VIEWS.forEach(function(v){$('v-'+v).hidden=v!==view});
+    var tabs=view==='today'||view==='month'||view==='records'||view==='rank'||view==='compare';
+    $('seg').hidden=!tabs;
+    $('bar').hidden=!(S.me&&S.me.configured&&view!=='msg'&&!(view==='setup'&&S.firstTime));
+    if(tabs){S.tab=view;[].forEach.call($('seg').querySelectorAll('button'),function(b){b.setAttribute('aria-selected',String(b.dataset.tab===view))})}
+    $('b-home').setAttribute('aria-current',String(tabs));
+    $('b-set').setAttribute('aria-current',String(view==='my'));
+    document.documentElement.style.setProperty('--barh',($('bar').hidden?0:$('bar').offsetHeight)+'px'); // 設定の固定ボタンを、下のボタンの上に置く
+    window.scrollTo(0,0);
+    renderHead();
+    if(view==='my'){renderMy();loadPodium()}
+  }
+  function fatal(text){$('msg-text').textContent=text;show('msg')}
+
+  function renderHead(){
+    var h=$('hd-title'),sub=$('hd-sub');
+    var who=S.me&&S.me.name?S.me.name+'さんの売上':'タクシー日報';
+    h.textContent=who;
+    if(DEMO){var b=document.createElement('span');b.className='demo';b.textContent='見本';h.appendChild(b)}
+    if(!S.me){sub.textContent='';return}
+    var t=curTerm();
+    sub.textContent=S.view==='today'?dlabel(todayIso()):S.view==='month'?t.label+' '+mdLabel(t.start)+'〜'+mdLabel(t.end):S.view==='records'?'記録':S.view==='rank'?'ランキング・'+t.label:S.view==='compare'?'比較・'+t.label:S.view==='my'?'マイページ':S.view==='setup'?(S.firstTime?'あとで設定から直せます':'設定'):S.view==='report'?'日報を送る':'';
+  }
+
+  // ===== 今日 =====
+  function renderToday(){
+    if(!S.me||!S.me.configured)return;
+    var cs=curSummary(),s=cs.s,st=S.today;
+    var auto=s.targetToday,eff=Calc.effectiveTarget(auto,st.goal),target=eff.target,sales=Calc.parseAmount(st.sales);
+    var n=Calc.jstNow(Date.now()),m=Calc.shiftMath(st,n.min);
+    ['dep','ret'].forEach(function(k){var el=$('td-'+k);if(document.activeElement!==el)el.value=st[k]||''});
+    var sEl=$('td-sales');if(document.activeElement!==sEl)sEl.value=st.sales?(Calc.parseAmount(st.sales)!==null?Calc.parseAmount(st.sales).toLocaleString('ja-JP'):st.sales):'';
+    var gEl=$('td-goal');if(document.activeElement!==gEl)gEl.value=st.goal?(Calc.parseAmount(st.goal)!==null?Calc.parseAmount(st.goal).toLocaleString('ja-JP'):st.goal):'';
+    gEl.placeholder=auto!=null?auto.toLocaleString('ja-JP'):'例 50,000';
+    $('td-avg').textContent=sales!==null&&m&&m.elapsed>0?yen(sales/(m.elapsed/60)):'—'; // 出庫前も「—」に戻す（2026-11-20 本人）
+    var need=$('td-need'),sub=$('td-need-sub'),note=$('td-note');
+    need.textContent='—';sub.textContent='';$('td-need-tax').hidden=true;
+    // 今のペース（現時点の時間平均単価 × 今日の乗務時間）が本日の売上目標以上なら緑
+    var paceOk=target!=null&&sales!==null&&m&&m.elapsed>0&&(sales>=target||sales/m.elapsed*(m.elapsed+Math.max(0,m.left))>=target);
+    $('td-need-card').classList.toggle('pace-ok',!!paceOk);note.className='msg';note.textContent=S.micMsg;
+    if(S.micMsg)return;
+    var missing=[];
+    if(!st.dep)missing.push('出庫時間');
+    if(!st.ret)missing.push('帰庫時間');
+    if(sales===null)missing.push('今の税抜売上');
+    if(missing.length){note.textContent=missing.join('・')+' を入れると計算します。';return}
+    if(target==null){note.textContent='本日の売上目標が出ていないので、計算できません。';return}
+    var rest=target-sales;
+    if(rest<=0){need.textContent='達成';note.textContent='本日の目標より '+yen(-rest)+' 多い売上です。';return}
+    if(m.left<=0){note.textContent='帰庫時間を過ぎています。目標まであと '+yen(rest)+' です。';return}
+    var perHour=Math.ceil(rest/(m.left/60));
+    need.textContent=yen(perHour*1.1);$('td-need-tax').hidden=false;
+    sub.textContent='目標まであと '+yen(rest)+'、帰庫まであと '+hmJp(m.left)+' で計算しています。'; // 税抜の文は出さない（2026-11-18 本人）
+  }
+
+  var saveTodayTimer=null;
+  function saveToday(){
+    clearTimeout(saveTodayTimer);
+    saveTodayTimer=setTimeout(function(){
+      var st=S.today;st.date=todayIso();
+      api('saveToday',{date:st.date,dep:st.dep||'',ret:st.ret||'',sales:Calc.parseAmount(st.sales)==null?'':Calc.parseAmount(st.sales),goal:Calc.parseAmount(st.goal)>0?Calc.parseAmount(st.goal):''}).catch(function(){setMsg($('td-note'),'保存できませんでした。もう一度入れてください。',true)});
+    },500);
+  }
+  function setupToday(){
+    ['dep','ret'].forEach(function(k){
+      var el=$('td-'+k);
+      el.addEventListener('input',function(){S.today[k]=el.value;S.micMsg='';renderToday()});
+      el.addEventListener('change',function(){S.today[k]=el.value;S.micMsg='';renderAll();saveToday()});
+    });
+    var ge=$('td-goal');
+    ge.addEventListener('input',function(){S.today.goal=ge.value;S.micMsg='';renderToday()});
+    ge.addEventListener('change',function(){var n=Calc.parseAmount(ge.value);if(n!==null&&n>0){ge.value=n.toLocaleString('ja-JP');S.today.goal=ge.value}else{ge.value='';S.today.goal=''}renderToday();saveToday()});
+    var se=$('td-sales');
+    se.addEventListener('input',function(){S.today.sales=se.value;S.micMsg='';renderToday()});
+    se.addEventListener('change',function(){var n=Calc.parseAmount(se.value);if(n!==null)se.value=n.toLocaleString('ja-JP');S.today.sales=se.value;renderToday();saveToday()});
+
+    // マイク：ブラウザが声の聞き取りに対応している時だけ出す
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return;
+    var mic=$('mic'),rec=null;
+    mic.hidden=false;
+    var stop=function(){mic.classList.remove('on');mic.setAttribute('aria-label','声で売上を入れる');rec=null};
+    mic.addEventListener('click',function(){
+      if(rec){rec.stop();return}
+      rec=new SR();rec.lang='ja-JP';rec.interimResults=false;rec.maxAlternatives=3;
+      var got=false;
+      rec.onresult=function(e){
+        var alts=e.results[0],n=null,heard='';
+        for(var i=0;i<alts.length&&n===null;i++){heard=heard||alts[i].transcript;n=Calc.parseAmount(alts[i].transcript)}
+        got=true;
+        if(n===null){S.micMsg='「'+heard+'」と聞こえました。金額だけをもう一度話してください。';renderToday();return}
+        se.value=n.toLocaleString('ja-JP');S.today.sales=se.value;S.micMsg='';renderToday();saveToday();
+      };
+      rec.onerror=function(e){
+        got=true;
+        S.micMsg=e.error==='not-allowed'||e.error==='service-not-allowed'?'マイクが許可されていません。ブラウザの設定で、このページのマイクを許可してください。':e.error==='no-speech'?'聞き取れませんでした。マイクのボタンを押して、もう一度話してください。':'聞き取りに失敗しました。もう一度押してください。';
+        renderToday();
+      };
+      rec.onend=function(){stop();if(!got){S.micMsg='聞き取れませんでした。マイクのボタンを押して、もう一度話してください。';renderToday()}};
+      try{rec.start();mic.classList.add('on');mic.setAttribute('aria-label','聞き取りを止める');S.micMsg='聞いています。「2万5000円」のように金額を話してください。';renderToday()}
+      catch(err){stop();S.micMsg='聞き取りを始められませんでした。もう一度押してください。';renderToday()}
+    });
+  }
+
+  // ===== 今月 =====
+  function renderMonth(){
+    if(!S.me||!S.me.configured)return;
+    var cs=curSummary(),s=cs.s,t=cs.t,doc=cs.doc,me=S.me;
+    $('mo-h').textContent=t.label+'の目標売上（'+mdLabel(t.start)+'〜'+mdLabel(t.end)+'）'+(doc.goal?' '+doc.goal.toLocaleString('ja-JP')+'円':'');
+    if(document.activeElement!==$('mo-goal'))$('mo-goal').value=doc.goal?doc.goal.toLocaleString('ja-JP'):'';
+    $('mo-box').hidden=!doc.goal;
+    if(doc.goal){
+      if(s.rest<=0){
+        $('mo-need-l').textContent='目標を達成しました';$('mo-need-v').textContent=yen(s.sales);$('mo-need-n').textContent='目標より '+yen(-s.rest)+' 多い売上です';
+      }else if(s.remain===0){
+        $('mo-need-l').textContent='月度の最後の日まで入力済みです';$('mo-need-v').textContent='あと '+yen(s.rest);$('mo-need-n').textContent='目標に届かなかった金額です';
+      }else{
+        $('mo-need-l').textContent='残りの達成すべき売上';$('mo-need-v').textContent=yen(s.rest);
+        $('mo-need-n').textContent='必要時間平均単価 '+(s.needHour!=null?yen(s.needHour):'—')+'・残り'+fmtD(s.remain);
+      }
+      var r1=s.rateProgress;
+      $('mo-rate1').textContent=r1==null?'—':pct(r1);$('mo-fill1').style.width=r1==null?'0':Math.min(100,r1*100)+'%';$('mo-fill1').classList.toggle('good',r1!=null&&r1>=1);$('mo-rate1').classList.toggle('good',r1!=null&&r1>=1);
+      $('mo-rate2').textContent=pct(s.rateMonth);$('mo-fill2').style.width=Math.min(100,s.rateMonth*100)+'%';
+      var f=$('mo-formula');
+      if(s.forecast==null)f.textContent='日報が入ると、月末の見込みが出ます。';
+      else if(me.mode==='hours')f.textContent='時間平均単価 '+yen(s.hourAvg)+' × '+me.limitHours+'時間 ＝ 見込み '+yen(s.forecast);
+      else f.textContent='1日平均 '+yen(s.avgDay)+' × 出勤予定'+doc.planDays+'日 ＝ 見込み '+yen(s.forecast);
+    }
+    if($('mo-plan-form').hidden)$('mo-plan').textContent=doc.planDays+'日';
+    $('mo-worked').textContent=s.worked+'日';
+    $('mo-remplan').textContent=s.remainPlan+'日';
+    $('mo-min').textContent=s.minutes?hmJp(s.minutes):'—';
+    $('mo-left').textContent=hmJp(s.leftMin);
+    $('ms-sales').textContent=yen(s.sales);
+    var at=Calc.appTotals(S.reports,t.start,t.end,me.appSales);
+    $('ms-top').hidden=!at;$('ms-apps').hidden=!at;$('ms-sales-item').hidden=!!at;$('ms-pay-item').hidden=!!at;
+    if(at){$('ms-sales2').textContent=yen(s.sales);$('ms-ap-uber').textContent=yen(at.uber);$('ms-ap-go').textContent=yen(at.go);$('ms-ap-didi').textContent=yen(at.didi);$('ms-ap-other').textContent=yen(at.other);[['uber','nUber'],['go','nGo'],['didi','nDidi'],['other','nOther']].forEach(function(p){var c=$('ms-ac-'+p[0]);c.hidden=!at.hasCount;c.textContent=at[p[1]]+'件'})}
+    $('ms-pay-k').textContent='歩合（'+me.rate+'掛け）';
+    $('ms-pay').textContent=yen(s.pay);$('ms-pay2-k').textContent='歩合（'+me.rate+'掛け）';$('ms-pay2').textContent=yen(s.pay);
+    $('ms-avg').textContent=s.avgDay!=null?yen(s.avgDay):'—';
+    $('ms-hour').textContent=s.hourAvg!=null?yen(s.hourAvg):'—';
+    // 設定の「1日の乗務時間」で乗った時の目安売上（時間平均単価 × 1日の乗務時間。2026-11-20 本人）
+    var dh=Number(me.dayHours)||0;$('ms-13-k').textContent=(dh?dh+'時間':'1日の乗務時間')+'あたり'; /* 「12.5時間あたり」だけ（2026-11-20 本人） */$('ms-13').textContent=s.hourAvg!=null&&dh?yen(s.hourAvg*dh):'—';
+    $('ms-rides').textContent=s.rides.toLocaleString('ja-JP')+'回';$('ms-per').textContent=s.rides?yen(s.sales/s.rides):'—'; // 客単価は別の項目に（2026-11-20 本人）
+    $('ms-time').textContent=s.minutes?hmJp(s.minutes):'—';
+    $('wk-range').textContent=dlabel(s.week.start)+'〜'+dlabel(s.week.end);
+    $('wk-sales').textContent=yen(s.week.sales);
+    /* 今週の時間平均単価（今週の、乗務時間が入っている日の売上 ÷ 乗務時間）。営業回数の代わり（2026-11-20 本人） */
+    var wh=0,wm=0;S.reports.forEach(function(r){if(r.date>=s.week.start&&r.date<=s.week.end&&r.minutes){wh+=r.sales||0;wm+=r.minutes}});
+    $('wk-hour').textContent=wm?yen(wh/(wm/60)):'—';
+    // 今週のアプリ内訳（月の合計と同じ出し方。週の範囲で足す）2026-11-19 本人
+    var wat=Calc.appTotals(S.reports,s.week.start,s.week.end,me.appSales);
+    $('wk-apps').hidden=!wat;
+    if(wat){[['uber','nUber'],['go','nGo'],['didi','nDidi'],['other','nOther']].forEach(function(p){$('wk-ap-'+p[0]).textContent=yen(wat[p[0]]);var c=$('wk-ac-'+p[0]);c.hidden=!wat.hasCount;c.textContent=wat[p[1]]+'件'})}
+  }
+  function saveTerm(id,fields){
+    var d=S.terms[id]||(S.terms[id]={});
+    Object.keys(fields).forEach(function(k){d[k]=fields[k]});
+    return api('saveTerm',Object.assign({term:id},fields));
+  }
+  function setupMonth(){
+    $('mo-goal').addEventListener('input',function(){setMsg($('mo-msg'),'')});
+    $('mo-save').addEventListener('click',function(){
+      var n=toNum($('mo-goal').value);
+      if(n===null||isNaN(n)||n<=0){setMsg($('mo-msg'),'金額を数字で入れてください（例 1300000）',true);return}
+      var id=curTerm().id;setMsg($('mo-msg'),'保存しています');
+      saveTerm(id,{goal:Math.round(n)}).then(function(){$('mo-goal').blur();setMsg($('mo-msg'),'保存しました');renderAll()},function(){setMsg($('mo-msg'),'保存できませんでした。もう一度押してください',true)});
+    });
+    $('mo-plan-edit').addEventListener('click',function(){
+      $('mo-plan-view').hidden=true;$('mo-plan-form').hidden=false;
+      var i=$('mo-plan-in');i.value=termDoc(curTerm().id).planDays;i.focus();i.select();
+    });
+    function closePlan(){$('mo-plan-form').hidden=true;$('mo-plan-view').hidden=false;renderMonth()}
+    $('mo-plan-no').addEventListener('click',closePlan);
+    $('mo-plan-ok').addEventListener('click',function(){
+      var n=toNum($('mo-plan-in').value);
+      if(n===null||isNaN(n)||n<0||n>31||Math.floor(n)!==n){setMsg($('mo-msg'),'出勤予定日数は、0〜31の整数で入れてください',true);return}
+      setMsg($('mo-msg'),'');
+      saveTerm(curTerm().id,{planDays:n}).then(function(){closePlan();renderAll();showToast('出勤予定日数を直しました')},function(){setMsg($('mo-msg'),'保存できませんでした。もう一度押してください',true)});
+    });
+  }
+
+  // ===== 記録 =====
+  function renderRecords(){
+    if(!S.me||!S.me.configured)return;
+    var groups=Calc.groupTerms(S.reports,S.me.closeDay,todayIso());
+    var vi=groups.findIndex(function(g){return g.term.id===S.viewTerm});
+    if(vi<0){vi=0;S.viewTerm=groups[0].term.id}
+    var g=groups[vi],t=g.term;
+    $('rc-prev').disabled=vi>=groups.length-1;
+    $('rc-next').disabled=vi<=0;
+    $('rc-label').replaceChildren(document.createTextNode(t.label),Object.assign(document.createElement('small'),{className:'rc-range',textContent:'（'+mdLabel(t.start)+'〜'+mdLabel(t.end)+'）'})); // 月度名と期間を2行に（2026-11-20 本人）
+    var byDate={},maxHour=0;
+    g.days.forEach(function(d){byDate[d.date]=d;if(d.minutes)maxHour=Math.max(maxHour,d.sales/(d.minutes/60))});
+    var tb=$('rc-rows');tb.replaceChildren();
+    var total=Math.round((Calc.parseD(t.end)-Calc.parseD(t.start))/Calc.DAY)+1;
+    for(var i=0;i<total;i++){
+      var iso=Calc.addDays(t.start,i),rec=byDate[iso],tr=document.createElement('tr');
+      if(!rec)tr.className='off';
+      else{tr.className='tap';tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',dlabel2(iso)+' の日報を直す');
+        (function(r){var go=function(){RP.thumb='';if(!r.manual){openApps(r,'records');return}RP.mode='edit';fillCheck({date:r.date,sales:r.sales,rides:r.rides,minutes:r.minutes,longFare:r.longFare,longFrom:r.longFrom,longTo:r.longTo,appUber:r.appUber,appGo:r.appGo,appDidi:r.appDidi,appOther:r.appOther,cntUber:r.cntUber,cntGo:r.cntGo,cntDidi:r.cntDidi,cntOther:r.cntOther,night:false},'',[],'edit');show('report')};
+          tr.addEventListener('click',go);tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})})(rec)}
+      var c0=document.createElement('td');c0.textContent=dlabel2(iso);if(Calc.dow(iso)===0||isHolidayJP(iso))c0.className='sun';else if(Calc.dow(iso)===6)c0.className='sat'; /* 土曜は青、日曜・祝日は赤（2026-11-18 本人） */tr.appendChild(c0);
+      var c1=document.createElement('td');c1.textContent=rec?rec.sales.toLocaleString('ja-JP'):'—';tr.appendChild(c1);
+      var c2=document.createElement('td');c2.textContent=rec&&rec.rides!=null?rec.rides:'';tr.appendChild(c2);
+      // 平均単価（売上÷回数）・乗務時間・時間あたり（売上÷乗務時間、円）。棒の絵はやめて数字で出す（2026-11-18 本人）
+      var c3=document.createElement('td');c3.textContent=rec&&rec.rides?Math.round(rec.sales/rec.rides).toLocaleString('ja-JP')+'円':'';tr.appendChild(c3);
+      var c4=document.createElement('td');c4.textContent=rec&&rec.minutes?hmShort(rec.minutes):'';tr.appendChild(c4);
+      var c5=document.createElement('td');c5.textContent=rec&&rec.minutes?Math.round(rec.sales/(rec.minutes/60)).toLocaleString('ja-JP')+'円':'';tr.appendChild(c5);
+      var c6=document.createElement('td');c6.className='go';c6.textContent=rec?'›':'';tr.appendChild(c6); // 押せると分かる印
+      tb.appendChild(tr);
+    }
+    // 月度ごとの表（新しい月度が上）
+    var mt=$('rc-mrows');mt.replaceChildren();
+    var todayI=todayIso(),acc={sales:[],rides:[],hour:[],avg:[],time:[]};
+    groups.forEach(function(gr){
+      var ms=Calc.monthSum(gr.days),tr=document.createElement('tr');
+      var c=document.createElement('td');c.textContent=String(gr.term.y).slice(2)+'年'+gr.term.label;tr.appendChild(c);
+      [ms.count?ms.sales.toLocaleString('ja-JP'):'—',ms.count?ms.rides.toLocaleString('ja-JP')+'回':'—',ms.hour?Math.round(ms.hour).toLocaleString('ja-JP'):'—',ms.avg?Math.round(ms.avg).toLocaleString('ja-JP'):'—',ms.time?hmShort(ms.time):'—'].forEach(function(x){
+        var d=document.createElement('td');d.textContent=x;tr.appendChild(d);
+      });
+      mt.appendChild(tr);
+      var done=gr.term.end<todayI;
+      if(done&&ms.count)acc.sales.push(ms.sales);
+      if(done&&ms.count&&ms.allRides)acc.rides.push(ms.rides);
+      if(ms.hour!=null)acc.hour.push(ms.hour);
+      if(ms.avg!=null&&ms.allRides)acc.avg.push(ms.avg);
+      if(done&&ms.time)acc.time.push(ms.time);
+    });
+    var mean=function(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:null};
+    var tr=document.createElement('tr');tr.className='avg';
+    [['平均',''],[mean(acc.sales),'円'],[mean(acc.rides),'回'],[mean(acc.hour),'円'],[mean(acc.avg),'円'],[mean(acc.time),'time']].forEach(function(p,i){
+      var c=document.createElement(i?'td':'th');if(!i)c.scope='row';
+      c.textContent=i?(p[0]==null?'—':p[1]==='time'?hmShort(p[0]):Math.round(p[0]).toLocaleString('ja-JP')):p[0];
+      tr.appendChild(c);
+    });
+    $('rc-mavg').replaceChildren(tr);
+    $('rc-mnote').textContent='平均の行は、終わった月度の数字で出しています。';
+  }
+  function setupRecords(){
+    function move(step){
+      var groups=Calc.groupTerms(S.reports,S.me.closeDay,todayIso());
+      var vi=groups.findIndex(function(g){return g.term.id===S.viewTerm}),ni=vi+step;
+      if(vi<0||ni<0||ni>=groups.length)return;
+      S.viewTerm=groups[ni].term.id;renderRecords();
+    }
+    $('rc-prev').addEventListener('click',function(){move(1)});
+    $('rc-next').addEventListener('click',function(){move(-1)});
+  }
+
+  // ===== 順位 =====
+  function shiftLabel(s){return s==='隔日勤務'?'隔勤':s}
+  function renderRank(){
+    if(!S.me)return;
+    var rk=S.rank,daily=rk.mode==='daily';
+    if($('rk-pref').value!==rk.pref)$('rk-pref').value=rk.pref||'';
+    [].forEach.call(document.querySelectorAll('#v-rank [data-mode]'),function(b){b.setAttribute('aria-selected',String(b.dataset.mode===rk.mode))});
+    [].forEach.call(document.querySelectorAll('#v-rank [data-shift]'),function(b){b.setAttribute('aria-pressed',String(b.dataset.shift===rk.shift))});
+    [].forEach.call(document.querySelectorAll('#v-rank [data-metric]'),function(b){b.setAttribute('aria-pressed',String(b.dataset.metric===rk.metric));b.hidden=!!b.dataset.daily&&!daily});
+    $('rk-day').hidden=!daily;if(!daily)$('rk-state').hidden=true;
+    var head=$('rk-head'),list=$('rk-list'),note=$('rk-note');
+    note.textContent=daily&&rk.metric==='long'?'運賃は日報の1回ごとの「合計金額」です。1人1回まで（その人の一番高い1回）。日報を送った人が10人より少ない日は、その人数まで並びます。':'';
+    if(rk.loading||!rk.data){$('rk-avg').hidden=true;head.textContent=rk.loading?'読み込んでいます':(rk.err||'');list.replaceChildren();return}
+    var d=rk.data,html='',pl=d.pref||'全国';
+    if(daily){
+      $('rk-date').textContent=dlabel(d.date);
+      var stEl=$('rk-state');stEl.hidden=!d.closeAt;stEl.textContent=d.closeAt?(d.final?'確定':'速報・'+d.closeAt+'に確定'):'';stEl.style.color=d.closeAt&&!d.final?'var(--bad)':'';/* 速報は赤字（2026-11-20 本人） */
+      $('rk-prev').disabled=!(d.first&&d.date>d.first);
+      $('rk-next').disabled=!(d.date<d.today);
+      head.textContent=d.metric==='long'?pl+'・'+shiftLabel(d.shift)+'のロング ベスト10（'+d.count+'人が日報を送った日）':pl+'・'+shiftLabel(d.shift)+' '+d.count+'人が日報を送った日';
+      if(!d.rows.length)html='<p class="t" style="margin:8px 0 0">'+(d.metric==='long'?'この日は、ロングを入れた人がいません。':'この日は、この数字を入れた人がいません。')+'</p>';
+    }else{
+      var ct=Calc.termOf(d.to,RANK_CLOSE_DAY);head.textContent=pl+'・'+shiftLabel(d.shift)+' '+d.count+'人が参加・'+ct.label+'（'+mdLabel(d.from)+'〜'+mdLabel(ct.end)+'）・'+mdLabel(d.to)+'まで';
+      if(!d.rows.length)html='<p class="t" style="margin:8px 0 0">まだ、この月度の数字を入れた人がいません。</p>';
+    }
+    // 平均は順位の枠とは別のカードで、日付の下（月間は切り替えの下）に出す（2026-11-18 本人）
+    var showAvg=!!(d.avg&&d.metric!=='long'&&d.rows.length);
+    $('rk-avg').hidden=!showAvg;
+    if(showAvg){
+      var mname={hour:'時間平均単価',sales:'売上',rides:'営業回数'}[d.metric]||'';
+      $('rk-avg-l').textContent=mname+'の平均（'+d.avg.n+'人）';
+      $('rk-avg-s').textContent=''; // 式の説明は1行に収まらないので出さない（中身は売上の合計÷乗務時間の合計のまま）
+      $('rk-avg-v').textContent=d.metric==='rides'?d.avg.value.toLocaleString('ja-JP')+'回':yen(d.avg.value);
+    }
+    d.rows.forEach(function(r){
+      var place=d.metric==='long'&&(r.from||r.to)?'<small>'+esc(r.from)+' → '+esc(r.to)+'</small>':'';
+      var val=d.metric==='rides'?r.value.toLocaleString('ja-JP')+'回':yen(r.value);
+      html+='<div class="rk'+(r.me?' me':'')+'"><span class="n">'+r.rank+'</span><span class="nm">'+esc(r.nick)+(r.me?'（あなた）':'')+place+'</span><b>'+val+'</b></div>';
+    });
+    list.innerHTML=html;
+  }
+  function loadRank(){
+    var rk=S.rank;rk.loading=true;rk.err='';renderRank();
+    var want={mode:rk.mode,pref:rk.pref,shift:rk.shift,metric:rk.metric,date:rk.date||''};
+    api('ranking',want).then(function(j){
+      if(rk.mode!==want.mode||rk.pref!==want.pref||rk.shift!==want.shift||rk.metric!==want.metric||(rk.date||'')!==want.date)return;
+      rk.loading=false;rk.data=j.ranking;if(j.ranking.date)rk.date=j.ranking.date;renderRank();
+    },function(e){rk.loading=false;rk.data=null;rk.err=e.message;renderRank()});
+  }
+  function fillPrefs(el,withAll){
+    var html=withAll?'<option value="全国">全国</option>':'';
+    Calc.PREFS.forEach(function(p){html+='<option value="'+p+'">'+p+'</option>'});
+    el.innerHTML=html;
+  }
+  function setupRank(){
+    fillPrefs($('rk-pref'),true);
+    $('rk-pref').addEventListener('change',function(){S.rank.pref=this.value;S.rank.date=null;loadRank()});
+    [].forEach.call(document.querySelectorAll('#v-rank [data-mode]'),function(b){b.addEventListener('click',function(){
+      S.rank.mode=b.dataset.mode;
+      if(S.rank.mode==='month'&&(S.rank.metric==='rides'||S.rank.metric==='long'))S.rank.metric='hour';
+      loadRank()})});
+    [].forEach.call(document.querySelectorAll('#v-rank [data-shift]'),function(b){b.addEventListener('click',function(){S.rank.shift=b.dataset.shift;S.rank.date=null;loadRank()})});
+    [].forEach.call(document.querySelectorAll('#v-rank [data-metric]'),function(b){b.addEventListener('click',function(){S.rank.metric=b.dataset.metric;loadRank()})});
+    $('rk-prev').addEventListener('click',function(){if(S.rank.data&&S.rank.data.date){S.rank.date=Calc.addDays(S.rank.data.date,-1);loadRank()}});
+    $('rk-next').addEventListener('click',function(){if(S.rank.data&&S.rank.data.date){S.rank.date=Calc.addDays(S.rank.data.date,1);loadRank()}});
+  }
+
+  // ===== 比較 =====
+  // 日本の祝日か（2020年以降の決まり。振替休日と、祝日にはさまれた国民の休日も含む）
+  function holidayBase(y,m,d){
+    var nth=function(k){var first=new Date(Date.UTC(y,m-1,1)).getUTCDay();var mon=1+((8-first)%7);return d===mon+7*(k-1)};
+    var wd=new Date(Date.UTC(y,m-1,d)).getUTCDay();
+    if(m===1&&(d===1||(wd===1&&nth(2))))return true;
+    if(m===2&&(d===11||d===23))return true;
+    if(m===3&&d===Math.floor(20.8431+0.242194*(y-1980)-Math.floor((y-1980)/4)))return true;
+    if(m===4&&d===29)return true;
+    if(m===5&&(d===3||d===4||d===5))return true;
+    if(m===7&&wd===1&&nth(3))return true;
+    if(m===8&&d===11)return true;
+    if(m===9&&((wd===1&&nth(3))||d===Math.floor(23.2488+0.242194*(y-1980)-Math.floor((y-1980)/4))))return true;
+    if(m===10&&wd===1&&nth(2))return true;
+    if(m===11&&(d===3||d===23))return true;
+    return false;
+  }
+  function isHolidayJP(iso){
+    var y=+iso.slice(0,4),m=+iso.slice(5,7),d=+iso.slice(8,10),t=Date.UTC(y,m-1,d),DAYMS=86400000;
+    var at=function(ms){var x=new Date(ms);return holidayBase(x.getUTCFullYear(),x.getUTCMonth()+1,x.getUTCDate())};
+    var wdOf=function(ms){return new Date(ms).getUTCDay()};
+    if(at(t))return true;
+    // 振替休日：日曜の祝日のあと、最初の祝日でない日
+    for(var k=1;k<=6;k++){var p=t-k*DAYMS;if(!at(p))break;if(wdOf(p)===0)return true}
+    // 国民の休日：前の日と次の日が祝日の平日
+    if(wdOf(t)!==0&&at(t-DAYMS)&&at(t+DAYMS))return true;
+    return false;
+  }
+  var RANK_CLOSE_DAY=15; // 順位の月間は全員15日締めの月度（2026-11-18 本人）
+  var CNAME={hour:'時間平均単価',sales:'売上',rides:'営業回数'};
+  function fmtV(v,metric){return v==null?'—':metric==='rides'?(Math.round(v*10)/10).toLocaleString('ja-JP')+'回':Math.round(v).toLocaleString('ja-JP')+'円'}
+  function signOf(d){return d>0?'+':d<0?'−':'±'}
+  // 差と％の文字（＋/−を付ける。色だけに頼らない）
+  function fmtDiff(df,metric){
+    if(!df)return '—';
+    var a=Math.abs(df.d),u=metric==='rides'?'回':'円';
+    return signOf(df.d)+(metric==='rides'?(Math.round(a*10)/10).toLocaleString('ja-JP'):Math.round(a).toLocaleString('ja-JP'))+u+(df.pct==null?'':'（'+signOf(df.pct)+Math.abs(df.pct)+'%）');
+  }
+  function cmpClass(df){return !df||df.d===0?'':df.d>0?'up':'down'}
+  function cmpTerm(){return Calc.termById(S.cmp.termId||curTerm().id,S.me.closeDay)}
+  function chartSvg(xl,a,b,metric){
+    var n=xl.length,vals=a.concat(b).filter(function(v){return v!=null});
+    if(!vals.length)return '';
+    var CH='combo'; // あなた＝棒、平均＝線（2026-11-18 本人が決めた）
+    var tk=Calc.niceTicks(CH==='line'?Math.min.apply(null,vals):0,Math.max.apply(null,vals));
+    var yl=tk.ticks.map(function(v){return metric==='sales'&&Math.abs(v)>=10000?(Math.round(v/1000)/10)+'万円':fmtV(v,metric)});
+    var tw=function(t){var w=0;for(var k=0;k<t.length;k++)w+=/[\x20-\x7e]/.test(t[k])?6:10;return w};
+    var W=340,H=218,T=10,Bm=46,R=8,L=Math.max(32,Math.max.apply(null,yl.map(tw))+9);
+    var X=CH!=='line'?function(i){return L+(W-L-R)*(i+0.5)/n}:function(i){return n===1?L+(W-L-R)/2:L+(W-L-R)*i/(n-1)};
+    var Y=function(v){return T+(H-T-Bm)*(1-(v-tk.lo)/(tk.hi-tk.lo))};
+    var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="あなたと平均の折れ線グラフ">';
+    tk.ticks.forEach(function(v,i){var y=Y(v).toFixed(1);s+='<line class="cg-g" x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'"/><text class="cg-t" x="'+(L-5)+'" y="'+(+y+3.5)+'" text-anchor="end">'+yl[i]+'</text>'});
+    xl.forEach(function(lb,i){
+      var o=typeof lb==='object'?lb:{bottom:lb,top:''},x=X(i).toFixed(1);
+      // 日にちが多い時は、1つおきに上下2段にずらして重ならないようにする
+      var two=n>16,low=two&&i%2===1;
+      if(o.top)s+='<text class="cg-mo" x="'+x+'" y="'+(H-32)+'" text-anchor="middle">'+esc(o.top)+'</text>';
+      s+='<line class="cg-g" x1="'+x+'" x2="'+x+'" y1="'+(H-Bm)+'" y2="'+(H-Bm+3)+'"/>';
+      s+='<text class="cg-d'+(o.cls?' '+o.cls:'')+'" x="'+x+'" y="'+(low?H-6:H-18)+'" text-anchor="middle">'+esc(o.bottom)+'</text>';
+    });
+    // 値の無い所で線を切る
+    var line=function(arr,cls,dots){
+      var d='',pen=false,pts='';
+      arr.forEach(function(v,i){
+        if(v==null){pen=false;return}
+        var x=X(i).toFixed(1),y=Y(v).toFixed(1);
+        d+=(pen?'L':'M')+x+' '+y;pen=true;
+        var alone=(i===0||arr[i-1]==null)&&(i===arr.length-1||arr[i+1]==null);
+        if(alone)pts+='<circle class="'+(dots?'cg-p':'cg-pa')+'" cx="'+x+'" cy="'+y+'" r="'+(dots?3:2.2)+'"/>';
+      });
+      return (d?'<path class="'+cls+'" d="'+d+'"/>':'')+pts;
+    };
+    if(CH==='line'){s+=line(b,'cg-a',false)+line(a,'cg-m',true)+'</svg>';return s}
+    var slot=(W-L-R)/Math.max(n,1),base=Y(tk.lo),bar=function(v,i,off,w,cls){if(v==null)return '';var y=Y(v),cx=X(i);return '<rect class="'+cls+'" x="'+(cx+off-w/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+Math.max(0,base-y).toFixed(1)+'" rx="1"/>'};
+    if(CH==='bar'){var w=Math.max(1.5,slot*0.36);a.forEach(function(v,i){s+=bar(b[i],i,w/2+0.3,w,'cg-ba')+bar(v,i,-w/2-0.3,w,'cg-bm')})}
+    else{var w2=Math.max(2,slot*0.62);a.forEach(function(v,i){s+=bar(v,i,0,w2,'cg-bm')});s+=line(b,'cg-a',false)}
+    return s+'</svg>';
+    return s;
+  }
+  function renderCompare(){
+    if(!S.me||!S.me.configured)return;
+    var c=S.cmp,daily=c.mode==='daily';
+    $('cp-who').textContent=(c.pref||'')+'・'+shiftLabel(c.shift)+'の平均と比べています';
+    [].forEach.call(document.querySelectorAll('#cp-mode [data-mode]'),function(b){b.setAttribute('aria-selected',String(b.dataset.mode===c.mode))});
+    [].forEach.call(document.querySelectorAll('#cp-metrics [data-metric]'),function(b){b.setAttribute('aria-pressed',String(b.dataset.metric===c.metric))});
+    $('cp-term').hidden=!daily;
+    var term=cmpTerm();
+    if(daily){
+      $('cp-label').textContent=term.label+'（'+mdLabel(term.start)+'〜'+mdLabel(term.end)+'）';
+      var cur=curTerm(),first=S.reports.length?Calc.termOf(S.reports[0].date,S.me.closeDay).start:cur.start;
+      $('cp-prev').disabled=!(term.start>first);
+      $('cp-next').disabled=term.id>=cur.id;
+    }
+    var say=$('cp-say');
+    if(c.loading||!c.data){say.className='say';say.textContent=c.loading?'読み込んでいます':(c.err||'');$('cp-legend').hidden=true;$('cp-chart').replaceChildren();$('cp-tablecard').hidden=true;return}
+    var d=c.data,m=d.metric,name=CNAME[m],xl=[],labels=[],meV=[],avgV=[],sm=null,df=null,intro='';
+    if(d.mode==='daily'){
+      var me=Calc.meDaily(S.reports,m,d.from,d.to);
+      d.items.forEach(function(it,i){var dd=Number(it.date.slice(8)),mo=Number(it.date.slice(5,7));var wd=new Date(Date.UTC(+it.date.slice(0,4),mo-1,dd)).getUTCDay();xl.push({bottom:String(dd),top:(i===0||dd===1)?mo+'月':'',cls:(wd===0||isHolidayJP(it.date))?'hol':wd===6?'sat':''});labels.push(dlabel2(it.date));meV.push(me[it.date]?me[it.date].v:null);avgV.push(it.avg?it.avg.value:null)});
+      sm=Calc.compareSummary(me,d.items,m);
+      if(sm){df=Calc.diffOf(sm.me,sm.avg,m);intro=term.label+'は、あなたが日報を出した日（'+sm.days+'日）で比べると、'}
+      else intro=term.label+'は、あなたの日報と平均がそろった日がまだありません。';
+      $('cp-th0').textContent='日';
+    }else{
+      var terms=d.items.map(function(it){return Calc.termById(it.id,S.me.closeDay)});
+      meV=Calc.meMonths(S.reports,m,terms);
+      d.items.forEach(function(it,i){var mo=Number(it.id.slice(5));xl.push({bottom:mo+'月',top:(i===0||mo===1)?it.id.slice(0,4)+'年':''});labels.push(it.label);avgV.push(it.avg?it.avg.value:null)});
+      var li=d.items.length-1;
+      if(meV[li]!=null&&avgV[li]!=null){df=Calc.diffOf(meV[li],avgV[li],m);intro='今の月度（'+d.items[li].label+'）は、'}
+      else intro='今の月度は、あなたの日報と平均がそろっていないので、まだ比べられません。';
+      $('cp-th0').textContent='月度';
+    }
+    if(df){
+      say.className='say '+cmpClass(df);
+      say.textContent=df.d===0?intro+'平均と同じ'+name+'です':intro+'平均より '+name+'が '+fmtDiff(df,m);
+    }else{say.className='say';say.textContent=intro}
+    var any=meV.some(function(v){return v!=null})||avgV.some(function(v){return v!=null});
+    $('cp-legend').hidden=!any;
+    $('cp-chart').innerHTML=any?chartSvg(xl,meV,avgV,m):'<p class="t">この期間は、まだ数字がありません。</p>';
+    // 表：新しい方が上
+    var tb=$('cp-rows');tb.replaceChildren();
+    for(var i=labels.length-1;i>=0;i--){
+      if(meV[i]==null&&avgV[i]==null)continue;
+      var dd=Calc.diffOf(meV[i],avgV[i],m),tr=document.createElement('tr');
+      [labels[i],fmtV(meV[i],m),fmtV(avgV[i],m),dd?fmtDiff(dd,m):'—'].forEach(function(x,k){
+        var td=document.createElement('td');
+        // 差は「金額」と「（％）」を2行に分けて、スマホの幅からはみ出さないようにする（2026-11-18）
+        if(k===3&&dd){var cut=x.indexOf('（');td.textContent=cut>0?x.slice(0,cut):x;if(cut>0){var sm=document.createElement('small');sm.className='pct';sm.textContent=x.slice(cut);td.appendChild(sm)}td.className=cmpClass(dd)}
+        else td.textContent=x;
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    }
+    $('cp-tablecard').hidden=!tb.children.length;
+  }
+  function loadCompare(){
+    var c=S.cmp;c.pref=S.me.pref||'大阪府';c.shift=S.me.shift||'昼勤';c.loading=true;c.err='';renderCompare();
+    var want={mode:c.mode,pref:c.pref,shift:c.shift,metric:c.metric,term:c.mode==='daily'?cmpTerm().id:''};
+    var key=JSON.stringify(want);
+    api('compare',want).then(function(j){
+      if(JSON.stringify({mode:c.mode,pref:c.pref,shift:c.shift,metric:c.metric,term:c.mode==='daily'?cmpTerm().id:''})!==key)return;
+      c.loading=false;c.data=j.compare;renderCompare();
+    },function(e){c.loading=false;c.data=null;c.err=e.message;renderCompare()});
+  }
+  function setupCompare(){
+    [].forEach.call(document.querySelectorAll('#cp-mode [data-mode]'),function(b){b.addEventListener('click',function(){S.cmp.mode=b.dataset.mode;loadCompare()})});
+    [].forEach.call(document.querySelectorAll('#cp-metrics [data-metric]'),function(b){b.addEventListener('click',function(){S.cmp.metric=b.dataset.metric;loadCompare()})});
+    $('cp-prev').addEventListener('click',function(){var t=cmpTerm();S.cmp.termId=Calc.termOf(Calc.addDays(t.start,-1),S.me.closeDay).id;loadCompare()});
+    $('cp-next').addEventListener('click',function(){var t=cmpTerm();S.cmp.termId=Calc.termOf(Calc.addDays(t.end,1),S.me.closeDay).id;loadCompare()});
+  }
+
+  // ===== マイページ =====
+  var fullDate=function(iso){var d=Calc.parseD(iso);return d.getUTCFullYear()+'/'+(d.getUTCMonth()+1)+'/'+d.getUTCDate()+'（'+WD[d.getUTCDay()]+'）'};
+  function renderMy(){
+    if(!S.me||!S.me.configured)return;
+    var me=S.me,acc=Calc.tabAccess(me);
+    $('my-fix').hidden=!(me.appSales&&S.reports.length);
+    $('my-name').innerHTML=esc(me.name);
+    $('my-line').textContent=[me.pref,me.shift,me.contract,me.reportType,me.rankJoin&&acc.canJoin?'ランキングに参加':'ランキングに参加していません'].join('・');
+    var st=Calc.myStats(S.reports,me.closeDay,todayIso());
+    $('my-days').textContent=st.sentDays+'日';
+    var rows=[['1日の売上',st.bestSales,function(b){return yen(b.value)}],['1日の時間平均単価',st.bestHour,function(b){return yen(b.value)}],['1日の営業回数',st.bestRides,function(b){return b.value+'回'}],
+      ['ロング',st.bestLong,function(b){return yen(b.value)}],['月度の売上',st.bestMonth,function(b){return yen(b.value)}]];
+    $('my-best').innerHTML=rows.map(function(r){
+      var b=r[1];if(!b)return '<span class="m">'+r[0]+'</span><b>—</b>';
+      var sub=r[0]==='月度の売上'?b.term.y+'年'+b.term.label+'（'+mdLabel(b.term.start)+'〜'+mdLabel(b.term.end)+'）':fullDate(b.date)+(r[0]==='ロング'&&(b.from||b.to)?' '+esc(b.from)+' → '+esc(b.to):'');
+      return '<span class="m">'+r[0]+'</span><b>'+r[2](b)+'</b><small>'+sub+'</small>';
+    }).join('');
+    // 1・2・3位の回数は、ランキングに参加している人（自動日報）だけ
+    var show1=!!(me.rankJoin&&acc.canJoin);
+    $('my-pod').hidden=!show1;
+    if(show1)renderPodium();
+  }
+  function renderPodium(){
+    var p=S.podium,body=$('my-pod-body');
+    $('my-pod-sub').textContent=S.me.pref+'・'+shiftLabel(S.me.shift)+'／これまでの通算';
+    if(!p||p.loading){body.innerHTML='<p class="t" style="margin:8px 0 0">読み込んでいます</p>';return}
+    if(p.err){body.innerHTML='<p class="t" style="margin:8px 0 0">'+esc(p.err)+'</p>';return}
+    var d=p.data,N={hour:'時間平均単価',sales:'売上',rides:'営業回数','long':'ロング'};
+    var tbl=function(keys,src){return '<div class="pod"><span></span><span class="h"><i class="medal g">1</i></span><span class="h"><i class="medal s">2</i></span><span class="h"><i class="medal c">3</i></span>'+keys.map(function(k){return '<span class="m">'+N[k]+'</span><b>'+src[k].join('</b><b>')+'</b>'}).join('')+'</div>'};
+    body.innerHTML='<div class="mysec">日ごと（確定した日）</div>'+tbl(['hour','sales','rides','long'],d.daily)+'<div class="mysec">月間（終わった月度）</div>'+tbl(['hour','sales'],d.month);
+  }
+  function loadPodium(){
+    if(!S.me||!(S.me.rankJoin&&Calc.tabAccess(S.me).canJoin))return;
+    S.podium={loading:true};renderPodium();
+    api('podium').then(function(j){S.podium={data:j.podium};if(S.view==='my')renderPodium()},function(e){S.podium={err:e.message};if(S.view==='my')renderPodium()});
+  }
+
+  // ===== 設定 =====
+  // 日報の種類：手書き日報なら、参加のチェックと呼び名の欄を出さない
+  function applyType(){
+    var hand=$('su-hand').checked;
+    $('su-join-wrap').hidden=hand;$('su-handnote').hidden=!hand;
+    $('su-nick-wrap').hidden=true; // 呼び名はニックネームと同じにする（2026-11-20 本人）
+  }
+  function exclusive3(ids){
+    ids.forEach(function(id){
+      $(id).addEventListener('change',function(){
+        if($(id).checked)ids.forEach(function(o){if(o!==id)$(o).checked=false});
+        else $(id).checked=true;
+      });
+    });
+  }
+  function exclusive(a,b){
+    $(a).addEventListener('change',function(){if($(a).checked)$(b).checked=false;else $(a).checked=true});
+    $(b).addEventListener('change',function(){if($(b).checked)$(a).checked=false;else $(b).checked=true});
+  }
+  function clearFieldErr(){[].forEach.call(document.querySelectorAll('.fielderr'),function(e){e.remove()})}
+  function fieldErr(id,text){
+    clearFieldErr();
+    var el=$(id);if(!el){setMsg($('su-msg'),text,true);return}
+    var p=document.createElement('p');p.className='fielderr';p.setAttribute('role','alert');p.textContent=text;
+    el.insertAdjacentElement('afterend',p);
+    el.scrollIntoView({block:'center',behavior:'smooth'});
+    try{el.focus({preventScroll:true});if(el.select)el.select()}catch(e){}
+  }
+  function fillSetup(){
+    var m=S.me;
+    $('su-pref').value=m.pref||'大阪府';
+    $('su-sei').checked=m.contract!=='嘱託';$('su-sho').checked=m.contract==='嘱託';
+    $('su-day').checked=m.shift!=='夜勤'&&m.shift!=='隔日勤務';$('su-night').checked=m.shift==='夜勤';$('su-kaku').checked=m.shift==='隔日勤務';
+    $('su-name').value=m.name||'';
+    $('su-auto').checked=m.reportType!=='手書き日報';$('su-hand').checked=m.reportType==='手書き日報';
+    $('su-join').checked=!!m.rankJoin&&m.reportType!=='手書き日報';$('su-nick').value=m.nick||'';
+    applyType();
+    $('su-rate').value=m.rate;$('su-hours').value=m.dayHours;$('su-close').value=m.closeDay;
+    $('su-mode-days').checked=m.mode!=='hours';$('su-mode-hours').checked=m.mode==='hours';
+    $('su-plan').value=termDoc(curTerm().id).planDays;$('su-limit').value=m.limitHours;$('su-week').value=String(m.weekStart==null?3:m.weekStart);$('su-apps').checked=!!m.appSales;
+    setMsg($('su-msg'),'');clearFieldErr();
+    $('su-go').textContent=S.firstTime?'はじめる':'保存';
+    $('su-back').hidden=S.firstTime;
+    $('su-lead').textContent=S.firstTime?'あなたに合わせて、違う所だけ直してください。':'設定を直せます。';
+  }
+  function setupSetup(){
+    fillPrefs($('su-pref'),false);
+    exclusive('su-sei','su-sho');
+    exclusive3(['su-day','su-night','su-kaku']);exclusive('su-mode-days','su-mode-hours');
+    exclusive('su-auto','su-hand');
+    $('su-auto').addEventListener('change',applyType);$('su-hand').addEventListener('change',applyType);
+    $('su-join').addEventListener('change',applyType);
+    $('su-back').addEventListener('click',function(){show('my')});
+    $('su-go').addEventListener('click',function(){
+      var err=function(t,id){fieldErr(id,t)};
+      var hand=$('su-hand').checked;
+      clearFieldErr();
+      var name=$('su-name').value.trim(),join=!hand&&$('su-join').checked,nick=name;
+      var rate=toNum($('su-rate').value),hours=toNum($('su-hours').value),close=toNum($('su-close').value),plan=toNum($('su-plan').value),limit=toNum($('su-limit').value);
+      if(!name)return err('ニックネームを入れてください。','su-name');
+      
+      if(rate==null||isNaN(rate)||rate<=0||rate>1)return err('歩合の割合は、0より大きく1までの数字で入れてください（例 0.6）。','su-rate');
+      if(hours==null||isNaN(hours)||hours<1||hours>24)return err('1日の乗務時間は、1〜24の数字で入れてください（例 12.5）。','su-hours');
+      if(close==null||isNaN(close)||close<1||close>31||Math.floor(close)!==close)return err('締め日は、1〜31の整数で入れてください（例 15）。','su-close');
+      if(plan==null||isNaN(plan)||plan<0||plan>31||Math.floor(plan)!==plan)return err('今月の出勤予定日数は、0〜31の整数で入れてください。','su-plan');
+      if(limit==null||isNaN(limit)||limit<1||limit>744)return err('月の乗務時間の上限は、1〜744の数字で入れてください（例 288）。','su-limit');
+      var me={contract:$('su-sho').checked?'嘱託':'正社員',pref:$('su-pref').value||'大阪府',shift:$('su-night').checked?'夜勤':$('su-kaku').checked?'隔日勤務':'昼勤',name:name,reportType:hand?'手書き日報':'自動日報',rankJoin:join,nick:nick,rate:rate,dayHours:hours,closeDay:close,weekStart:Number($('su-week').value),appSales:$('su-apps').checked,mode:$('su-mode-hours').checked?'hours':'days',limitHours:limit,configured:true};
+      setMsg($('su-msg'),'保存しています');$('su-go').disabled=true;
+      api('saveSettings',{settings:me}).then(function(){
+        Object.assign(S.me,me);
+        var id=curTerm().id;
+        return saveTerm(id,{planDays:plan});
+      }).then(function(){
+        $('su-go').disabled=false;
+        var first=S.firstTime;S.firstTime=false;
+        S.viewTerm=null;
+        S.rank.shift=S.me.shift;S.rank.pref=S.me.pref||'大阪府';S.rank.date=null;S.rank.data=null;S.cmp.shift=S.me.shift;S.cmp.pref=S.me.pref||'大阪府';S.cmp.termId=null;S.cmp.data=null;
+        applySeg();renderAll();show(first?'today':'my');
+        showToast(first?'はじめの設定ができました':'設定を保存しました');
+      },function(e){$('su-go').disabled=false;err(e.message)});
+    });
+  }
+  function applySeg(){var a=S.me?Calc.tabAccess(S.me):{rank:false,compare:false};$('seg-rank').hidden=!a.rank;$('seg-compare').hidden=!a.compare}
+
+  // ===== 日報を送る =====
+  var RP={thumb:'',saving:false};
+  function rpStage(s){$('rp-pick').hidden=s!=='pick';$('rp-wait').hidden=s!=='wait';$('rp-check').hidden=s!=='check';$('rp-photo').hidden=s!=='photo';$('rp-rescue').hidden=s!=='rescue'}
+  // アプリ別の売上（円）・件数（件）の欄。p は欄の名前の頭（rp＝手で入れる画面、pp＝写真の画面）
+  var APPK=[['uber','Uber','appUber','cntUber'],['go','GO','appGo','cntGo'],['didi','DiDi','appDidi','cntDidi'],['other','配車その他','appOther','cntOther']];
+  function buildApps(el,p){
+    el.innerHTML='<div class="grid2">'+APPK.map(function(a){
+      return '<div class="appcell"><span class="t" style="font-weight:700;color:var(--fg)">'+a[1]+'</span><input type="text" inputmode="numeric" autocomplete="off" id="'+p+'-a-'+a[0]+'" placeholder="売上（円）" aria-label="'+a[1]+'の売上（円）"><input type="text" inputmode="numeric" autocomplete="off" id="'+p+'-n-'+a[0]+'" placeholder="件数（件）" aria-label="'+a[1]+'の件数（件）"></div>';
+    }).join('')+'</div>';
+    APPK.forEach(function(a){$(p+'-a-'+a[0]).addEventListener('change',function(){var n=Calc.parseAmount(this.value);if(n!==null)this.value=n.toLocaleString('ja-JP')})});
+  }
+  function writeApps(p,r){
+    APPK.forEach(function(a){
+      $(p+'-a-'+a[0]).value=r[a[2]]>0?Number(r[a[2]]).toLocaleString('ja-JP'):'';
+      $(p+'-n-'+a[0]).value=r[a[3]]>0?String(r[a[3]]):'';
+    });
+  }
+  // 空はそのまま（null）。数字でない時だけ、欄の下に出す知らせを返す
+  function readApps(p){
+    var out={};
+    for(var q=0;q<APPK.length;q++){
+      var a=APPK[q],sv=toNum($(p+'-a-'+a[0]).value),nv=toNum($(p+'-n-'+a[0]).value);
+      if(sv!==null&&(isNaN(sv)||sv<0))return {err:a[1]+'の売上を数字で入れてください（空でもかまいません）。',id:p+'-a-'+a[0]};
+      if(nv!==null&&(isNaN(nv)||nv<0||Math.floor(nv)!==nv))return {err:a[1]+'の件数を整数で入れてください（空でもかまいません）。',id:p+'-n-'+a[0]};
+      out[a[2]]=sv===null?null:Math.round(sv);out[a[3]]=nv===null?null:nv;
+    }
+    return {apps:out};
+  }
+  // 写真を送ったあと（photo）と、記録・あとから直す入口から開いた時（apps）の画面。数字は変えられない表示
+  function showPhoto(mode,r,warns){
+    RP.mode=mode;
+    var apps=mode==='apps',lg=r.longFare>0;
+    $('pp-title').textContent=apps?dlabel(r.date)+' の日報：アプリ別の売上・件数':'読み取った数字が合っているか確かめてください';
+    var rows=[['出庫日',dlabel(r.date)],['税抜売上',yen(r.sales)],['営業回数',r.rides+'回'],['乗務時間',hmShort(r.minutes)],['ロング（1回の乗車で一番高かった運賃）',lg?yen(r.longFare)+(r.longFrom||r.longTo?'<small>'+esc(r.longFrom)+' → '+esc(r.longTo)+'</small>':''):'なし']];
+    $('pp-ro').innerHTML=rows.map(function(x){return '<div class="ro"><span>'+x[0]+'</span><b>'+(x[0].indexOf('ロング')===0&&lg?x[1]:esc(x[1]))+'</b></div>'}).join('');
+    var th=$('pp-thumb');if(!apps&&RP.thumb){th.src=RP.thumb;th.hidden=false}else{th.removeAttribute('src');th.hidden=true}
+    var wb=$('pp-warn');wb.hidden=!(warns&&warns.length);wb.innerHTML=(warns||[]).map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
+    $('pp-okwrap').hidden=apps;$('pp-ok').checked=false;
+    $('pp-fixnote').hidden=!apps||!!r.manual;
+    var hasApps=!!S.me.appSales;
+    $('pp-appcard').hidden=!hasApps;
+    if(hasApps)writeApps('pp',r);
+    $('pp-send').textContent=apps?'保存する':'送信する';
+    $('pp-send').hidden=apps&&!hasApps;
+    $('pp-send').disabled=!apps;$('pp-hint').hidden=apps;
+    $('pp-confirm').hidden=true;setMsg($('pp-msg'),'');clearFieldErr();
+    rpStage('photo');
+  }
+  // あとから直す入口：日付を選ぶ（from は戻り先。マイページから開いた時は 'my'）
+  function openRescue(from){
+    RP.rescueFrom=from;
+    var sel=$('rs-date');sel.innerHTML='';
+    S.reports.slice().reverse().forEach(function(r){var o=document.createElement('option');o.value=r.date;o.textContent=dlabel(r.date);sel.appendChild(o)});
+    show('report');rpStage('rescue');
+  }
+  function openApps(r,back){RP.date=r.date;RP.backTo=back;RP.thumb='';showPhoto('apps',r,[]);show('report')}
+  function openReport(){
+    setMsg($('rp-pickmsg'),'');rpStage('pick');$('in-cam').value='';$('in-file').value='';
+    $('rp-fix').hidden=!(S.me.appSales&&S.reports.length);RP.ticket='';
+    var hand=!Calc.tabAccess(S.me).photo; // 手書き日報の人は「手で入れる」だけ
+    $('rp-cam').hidden=hand;$('rp-file').hidden=hand;
+    $('rp-h').textContent=hand?'日報を手で入れる':'日報の写真を送る';$('rp-hand').textContent=hand?'日報の数字を入れる':'写真を使わずに、手で入れる';/* 手書き日報の人の見出しとボタン（2026-11-20） */
+    $('rp-pickintro').textContent=hand?'手書き日報の人は、数字を手で入れます。手で入れた日報は、ランキングには入りませんが、全体の平均には入ります。':'日報全体が写るように撮ってください。数字を読み取って、次の画面で確かめてから保存します。';
+    show('report');
+  }
+  function loadImage(file){
+    function viaImg(){return new Promise(function(res,rej){var u=URL.createObjectURL(file),im=new Image();im.onload=function(){res(im)};im.onerror=function(){rej(new Error('decode'))};im.src=u})}
+    if(window.createImageBitmap)return createImageBitmap(file).catch(viaImg);
+    return viaImg();
+  }
+  // 長い辺1600px程度のJPEGに縮める（iPhoneのHEICも、ブラウザが読めればここでJPEGになる）
+  function shrink(file){
+    return loadImage(file).then(function(img){
+      var w=img.width||img.naturalWidth,h=img.height||img.naturalHeight;
+      if(!w||!h)throw new Error('decode');
+      var sc=Math.min(1,1600/Math.max(w,h)),cw=Math.round(w*sc),ch=Math.round(h*sc);
+      var cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+      var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cw,ch);cx.drawImage(img,0,0,cw,ch);
+      return cv.toDataURL('image/jpeg',0.85);
+    });
+  }
+  // 写真で送った日報がある日を選んだ時の文（手で入れる時）。その日の日報は手では直せない
+  function photoDayText(d){var r=S.reports.find(function(x){return x.date===d&&!x.manual});return r?mdLabel(d)+' には写真で送った日報があります。数字が違う時は、写真を送り直してください。':''}
+  function updPhotoNote(){var n=$('rp-photonote'),tx=RP.edit?'':photoDayText($('rp-date').value);n.hidden=!tx;n.textContent=tx}
+  function fillCheck(r,note,warns,mode){
+    RP.edit=mode==='edit';
+    $('rp-title').textContent=mode==='hand'?'日報の数字を入れてください':mode==='edit'?'日報の数字を直す':'読み取った数字を確かめてください';
+    $('rp-date').disabled=RP.edit;
+    $('rp-date').max=Calc.jstNow(Date.now()).iso; // 今日より先の日付は入れられない
+    $('rp-date').value=r.date||'';
+    $('rp-sales').value=r.sales!=null?Number(r.sales).toLocaleString('ja-JP'):'';
+    $('rp-rides').value=r.rides!=null?r.rides:'';
+    $('rp-time').value=r.minutes?pad2(Math.floor(r.minutes/60))+':'+pad2(r.minutes%60):'';
+    $('rp-long').value=r.longFare>0?Number(r.longFare).toLocaleString('ja-JP'):'';$('rp-from').value=r.longFrom||'';$('rp-to').value=r.longTo||'';
+    $('rp-apps').hidden=!S.me.appSales;$('rp-manualnote').hidden=false;
+    writeApps('rp',r);
+    $('rp-night').hidden=!r.night;
+    var w=(warns||[]).slice();if(note)w.push('読み取りの時のメモ：'+note);
+    var wb=$('rp-warn');wb.hidden=!w.length;wb.innerHTML=w.map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
+    var th=$('rp-thumb');if(RP.thumb){th.src=RP.thumb;th.hidden=false}else{th.removeAttribute('src');th.hidden=true}
+    setMsg($('rp-msg'),'');clearFieldErr();$('rp-confirm').hidden=true;$('rp-save').disabled=false;updPhotoNote();$('rp-save').hidden=false;
+    rpStage('check');
+  }
+  function onPhoto(file){
+    if(!file)return;
+    setMsg($('rp-pickmsg'),'');
+    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';
+    shrink(file).then(function(dataUrl){
+      RP.thumb=dataUrl;
+      $('rp-waittext').textContent='写真を読み取っています（10秒ほどかかります）';
+      return api('read',{b64:dataUrl.split(',')[1],mediaType:'image/jpeg'});
+    }).then(function(j){
+      if(j.notReport){rpStage('pick');setMsg($('rp-pickmsg'),'日報の写真ではないようです。日報全体が写った写真を選び直すか、手で入れてください。',true);return}
+      RP.ticket=j.ticket;
+      var wl=(j.plan.warnings||[]).slice();if(j.plan.night)wl.push('夜中（6時より前）の出庫なので、前の日の日報にしています。');if(j.report.note)wl.push('読み取りの時のメモ：'+j.report.note);
+      var r0={date:j.plan.date,sales:j.report.sales,rides:j.report.rides,minutes:j.report.minutes,longFare:j.report.longFare,longFrom:j.report.longFrom,longTo:j.report.longTo,manual:false};
+      showPhoto('photo',r0,wl);
+      var ex=S.reports.find(function(d){return d.date===r0.date});if(ex&&S.me.appSales)writeApps('pp',ex);
+    },function(e){
+      rpStage('pick');
+      setMsg($('rp-pickmsg'),e.message==='decode'?'この写真を読み込めませんでした。別の写真を選ぶか、撮り直してください。手で入れることもできます。':e.message+' 手で入れることもできます。',true);
+    });
+  }
+  function collectReport(){
+    var date=$('rp-date').value,sales=toNum($('rp-sales').value),rides=toNum($('rp-rides').value),tm=/^(\d{1,2}):(\d{2})$/.exec($('rp-time').value||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return {err:'出庫日を入れてください。',id:'rp-date'};
+    if(date>Calc.jstNow(Date.now()).iso)return {err:'今日より先の日付は入れられません。',id:'rp-date'};
+    if(!RP.edit&&photoDayText(date))return {err:photoDayText(date),id:'rp-date',quiet:true}; // 赤字は出さず、黄色の枠だけ（2026-11-20 本人）
+    if(sales==null||isNaN(sales)||sales<0)return {err:'税抜売上を数字で入れてください。',id:'rp-sales'};
+    if(rides==null||isNaN(rides)||rides<0||Math.floor(rides)!==rides)return {err:'営業回数を整数で入れてください。',id:'rp-rides'};
+    if(!tm)return {err:'乗務時間を「時:分」で入れてください（例 12:11）。',id:'rp-time'};
+    var lf=toNum($('rp-long').value);
+    if(lf!==null&&(isNaN(lf)||lf<=0))return {err:'ロングの金額を数字で入れてください（空でもかまいません）。',id:'rp-long'};
+    var minutes=Number(tm[1])*60+Number(tm[2]);
+    if(minutes<=0)return {err:'乗務時間が0です。入れ直してください。',id:'rp-time'};
+    var ap=S.me.appSales?readApps('rp'):{apps:{}};
+    if(ap.err)return ap;
+    var rep0={date:date,sales:Math.round(sales),rides:rides,minutes:minutes,longFare:lf?Math.round(lf):null,longFrom:$('rp-from').value.trim().slice(0,30),longTo:$('rp-to').value.trim().slice(0,30)};
+    Object.keys(ap.apps).forEach(function(k){rep0[k]=ap.apps[k]});
+    return {report:rep0};
+  }
+  function finishSave(rep){
+    var i=S.reports.findIndex(function(d){return d.date===rep.date});
+    if(i>=0){if(rep.appUber===undefined){['appUber','appGo','appDidi','appOther','cntUber','cntGo','cntDidi','cntOther'].forEach(function(k){rep[k]=S.reports[i][k]})}S.reports[i]=rep}else S.reports.push(rep);
+    S.reports.sort(function(a,b){return a.date<b.date?-1:1});
+    var edit=RP.edit;if(!edit)S.viewTerm=null;RP.saving=false;
+    renderAll();show(edit?'records':'today'); // 送信のあとはホームに戻る
+    showBanner(mdLabel(rep.date)+' の日報を保存しました');
+  }
+  function doSave(overwrite){
+    if(RP.saving)return;
+    var c=collectReport();
+    if(c.err){if(c.quiet){updPhotoNote();var pn=$('rp-photonote');if(pn)pn.scrollIntoView({block:'center'});return}fieldErr(c.id,c.err);return}
+    clearFieldErr();
+    RP.saving=true;$('rp-save').disabled=true;setMsg($('rp-msg'),'保存しています');
+    api('saveReport',{report:c.report,overwrite:!!overwrite||RP.edit}).then(function(j){
+      if(j.status==='conflict'){
+        RP.saving=false;$('rp-save').disabled=false;setMsg($('rp-msg'),'');
+        var e=j.existing;
+        $('rp-confirm-t').textContent=dlabel(c.report.date)+' はもう入っています（売上 '+yen(e.sales)+'・'+(e.rides!=null?e.rides+'回・':'')+hmShort(e.minutes)+'）。上書きしますか？';
+        $('rp-confirm').hidden=false;$('rp-save').hidden=true;return;
+      }
+      c.report.manual=true;
+      finishSave(c.report);
+    },function(e){RP.saving=false;$('rp-save').disabled=false;setMsg($('rp-msg'),e.message,true)});
+  }
+  function setupReport(){
+    $('b-send').addEventListener('click',openReport);
+    $('rp-cam').addEventListener('click',function(){$('in-cam').click()});
+    $('rp-file').addEventListener('click',function(){$('in-file').click()});
+    $('in-cam').addEventListener('change',function(){onPhoto(this.files[0]);this.value=''});
+    $('in-file').addEventListener('change',function(){onPhoto(this.files[0]);this.value=''});
+    $('rp-hand').addEventListener('click',function(){RP.thumb='';RP.mode='hand';fillCheck({date:todayIso(),sales:null,rides:null,minutes:0,night:false},'',[],'hand')});
+    buildApps($('rp-appgrid'),'rp');buildApps($('pp-apps'),'pp');
+    $('pp-ok').addEventListener('change',function(){$('pp-send').disabled=!$('pp-ok').checked;$('pp-hint').hidden=$('pp-ok').checked});
+    $('pp-retake').addEventListener('click',function(){RP.ticket='';RP.thumb='';openReport()});
+    $('pp-cancel').addEventListener('click',function(){if(RP.mode==='apps'&&RP.backTo)show(RP.backTo);else show(S.tab==='rank'&&!Calc.tabAccess(S.me).rank?'today':S.tab)});
+    function ppSend(overwrite){
+      if(RP.saving)return;
+      var a=readApps('pp');
+      if(a.err){fieldErr(a.id,a.err);return}
+      clearFieldErr();
+      RP.saving=true;$('pp-send').disabled=true;setMsg($('pp-msg'),'保存しています');
+      var done=function(){RP.saving=false;$('pp-send').disabled=RP.mode!=='apps'&&!$('pp-ok').checked};
+      if(RP.mode==='apps'){
+        api('saveApps',{date:RP.date,apps:a.apps}).then(function(){
+          var i=S.reports.findIndex(function(d){return d.date===RP.date});
+          if(i>=0)Object.assign(S.reports[i],a.apps);
+          done();renderAll();show(RP.backTo||'records');showBanner(mdLabel(RP.date)+' のアプリ別を保存しました');
+        },function(e){done();setMsg($('pp-msg'),e.message,true)});
+        return;
+      }
+      api('submitReport',{ticket:RP.ticket,overwrite:!!overwrite,apps:a.apps}).then(function(j){
+        if(j.status==='conflict'){
+          done();setMsg($('pp-msg'),'');
+          var e=j.existing;
+          $('pp-confirm-t').textContent=dlabel(j.report.date)+' はもう入っています（売上 '+yen(e.sales)+'・'+(e.rides!=null?e.rides+'回・':'')+hmShort(e.minutes)+'）。新しい写真の数字で置き換えますか？';
+          $('pp-confirm').hidden=false;$('pp-send').hidden=true;return;
+        }
+        RP.ticket='';done();finishSave(j.report);
+      },function(e){
+        done();
+        if(e.code==='ticket'){rpStage('pick');setMsg($('rp-pickmsg'),e.message,true);return}
+        setMsg($('pp-msg'),e.message,true);
+      });
+    }
+    $('pp-send').addEventListener('click',function(){ppSend(false)});
+    $('pp-over').addEventListener('click',function(){$('pp-confirm').hidden=true;$('pp-send').hidden=false;ppSend(true)});
+    $('pp-keep').addEventListener('click',function(){$('pp-confirm').hidden=true;$('pp-send').hidden=false;setMsg($('pp-msg'),'')});
+    $('rp-fix').addEventListener('click',function(){openRescue('pick')});
+    $('rs-go').addEventListener('click',function(){var d=$('rs-date').value,r=S.reports.find(function(x){return x.date===d});if(r)openApps(r,RP.rescueFrom==='my'?'my':'month')});
+    $('rs-cancel').addEventListener('click',function(){if(RP.rescueFrom==='my')show('my');else rpStage('pick')});
+    var back=function(){show(S.tab==='rank'&&!Calc.tabAccess(S.me).rank?'today':S.tab)};
+    $('rp-cancel1').addEventListener('click',back);$('rp-cancel2').addEventListener('click',back);
+    $('rp-save').addEventListener('click',function(){doSave(false)});
+    $('rp-over').addEventListener('click',function(){$('rp-confirm').hidden=true;$('rp-save').hidden=false;doSave(true)});
+    $('rp-keep').addEventListener('click',function(){$('rp-confirm').hidden=true;$('rp-save').hidden=false;setMsg($('rp-msg'),'')});
+    ['rp-sales','rp-long','rp-a-uber','rp-a-go','rp-a-didi','rp-a-other'].forEach(function(id){$(id).addEventListener('change',function(){var n=Calc.parseAmount(this.value);if(n!==null)this.value=n.toLocaleString('ja-JP')})});
+    $('rp-date').addEventListener('input',updPhotoNote);$('rp-date').addEventListener('change',updPhotoNote);
+    ['rp-date','rp-sales','rp-rides','rp-time','rp-long','rp-from','rp-to','rp-a-uber','rp-a-go','rp-a-didi','rp-a-other'].forEach(function(id){$(id).addEventListener('input',function(){$('rp-confirm').hidden=true;$('rp-save').hidden=false})});
+  }
+
+  // ===== まとめ =====
+  function renderAll(){renderHead();renderToday();renderMonth();renderRecords();if(S.view==='rank')renderRank();if(S.view==='compare')renderCompare()}
+  function goTab(tab){
+    if(tab==='rank'&&!Calc.tabAccess(S.me).rank)tab='today';
+    show(tab);renderAll();
+    if(tab==='compare'){if(!S.cmp.shift)S.cmp.shift=S.me.shift||'昼勤';if(!S.cmp.pref)S.cmp.pref=S.me.pref||'大阪府';loadCompare()}
+    if(tab==='rank'){if(!S.rank.shift)S.rank.shift=S.me.shift;if(!S.rank.pref)S.rank.pref=S.me.pref||'大阪府';loadRank()}
+  }
+
+  function applyLoaded(j,first){
+    S.me=j.me;S.reports=j.reports||[];S.terms=j.terms||{};
+    var td=j.today||{};
+    S.today={dep:td.dep||'',ret:td.ret||'',sales:td.sales===''||td.sales==null?'':String(td.sales),goal:td.goal===''||td.goal==null?'':String(td.goal),date:td.date||''};
+    // 別の日になっていたら、時間と売上は空に戻す
+    if(S.today.date&&S.today.date!==Calc.todayKey(S.today,Date.now()))S.today={dep:'',ret:'',sales:'',goal:'',date:''};
+    S.loadedAt=Date.now();
+    applySeg();
+    if(first){
+      S.firstTime=!S.me.configured;
+      if(!S.rank.shift)S.rank.shift=S.me.shift||'昼勤';if(!S.rank.pref)S.rank.pref=S.me.pref||'大阪府';
+      if(S.firstTime){fillSetup();show('setup')}
+      else{show('today');renderAll()} // 開いた時の最初の画面はホーム（2026-11-19 本人）
+    }else renderAll();
+  }
+  function reload(){
+    api('load').then(function(j){
+      if(S.view==='report'||S.view==='setup')return;
+      // 入力の途中の欄は触らない
+      var f=document.activeElement;if(f&&f.tagName==='INPUT')return;
+      applyLoaded(j,false);
+    },function(){});
+  }
+
+  function boot(){
+    var m=/[?&]k=([^&#]+)/.exec(location.search);
+    if(m){try{K=decodeURIComponent(m[1])}catch(e){K=m[1]}}
+    if(!K&&!DEMO){try{K=localStorage.getItem('taxi-nippo-k')||''}catch(e){}}
+    if(!K&&!DEMO){fatal('このページは、渡されたアドレス（終わりに ?k= で始まる長い文字が付いたもの）から開いてください。');return}
+    setupToday();setupMonth();setupRecords();setupRank();setupCompare();setupSetup();setupReport();
+    [].forEach.call($('seg').querySelectorAll('button'),function(b){b.addEventListener('click',function(){goTab(b.dataset.tab)})});
+    $('b-home').addEventListener('click',function(){goTab('today')}); // ホームボタンはホームのタブへ（2026-11-19 本人）
+    $('b-set').addEventListener('click',function(){show('my')});
+    $('my-set').addEventListener('click',function(){S.firstTime=false;fillSetup();show('setup')});
+    $('my-fix').addEventListener('click',function(){openRescue('my')});
+    api('load').then(function(j){
+      if(!DEMO){try{localStorage.setItem('taxi-nippo-k',K)}catch(e){}}
+      applyLoaded(j,true);
+    },function(e){
+      fatal(e.code==='auth'?'このアドレスでは開けません。渡された最新のアドレスから開き直してください。':e.message);
+    });
+    setInterval(function(){if(S.me&&S.me.configured&&S.view!=='report'&&S.view!=='setup')renderAll()},60000);
+    document.addEventListener('visibilitychange',function(){
+      if(document.hidden||!S.me||!S.me.configured)return;
+      if(Date.now()-S.loadedAt>120000)reload();else if(S.view!=='report'&&S.view!=='setup')renderAll();
+    });
+  }
+
+  // ===== 見本（?demo=1）：裏を呼ばずに、見本のデータで全部の画面を動かす =====
+  var Demo=(function(){
+    var me={reportType:'自動日報',contract:'正社員',appSales:false,pref:'大阪府',shift:'',name:'',rankJoin:false,nick:'',rate:0.6,dayHours:12.5,closeDay:15,weekStart:3,mode:'days',limitHours:288,configured:false};
+    var terms={},today=null,reports=[],tickets={},tkn=0;
+    var PL_FROM=['大阪府北区','大阪府中央区','大阪府浪速区','大阪府天王寺区'];
+    var PL_TO=['京都府向日市','大阪府泉佐野市','大阪府吹田市','大阪府堺市','大阪府守口市','兵庫県西宮市'];
+    var r10=function(x){return Math.round(x/10)*10};
+    var iso0=Calc.jstNow(Date.now()).iso;
+    // 自分：昨日から100日さかのぼって、7日に1日は休みの日報を作る。ロングは4日に3日
+    (function(){
+      for(var i=1;i<=100;i++){
+        var d=Calc.addDays(iso0,-i),n=Calc.parseD(d).getUTCDate()*7+i*13;
+        if(n%7===0)continue;
+        var rep={date:d,sales:r10(36000+((n*7919)%42000)),rides:14+(n%17),minutes:620+((n*17)%160),longFare:null,longFrom:'',longTo:''};
+        if(n%4!==0){rep.longFare=r10(5000+((n*97)%12000));rep.longFrom=PL_FROM[n%4];rep.longTo=PL_TO[n%6]}
+        // アプリ別の売上（チェックした時に見える見本）：4日に3日は入っている。Uberが多く、DiDiは入らない日がある
+        if(i%4!==0){rep.appUber=r10(rep.sales*0.42);rep.appGo=r10(rep.sales*0.25);rep.appDidi=i%2?r10(rep.sales*0.1):null;rep.appOther=r10(rep.sales*0.06);rep.cntUber=6+(n%5);rep.cntGo=3+(n%4);rep.cntDidi=i%2?2:null;rep.cntOther=1}
+        rep.sentAt=Calc.addDays(d,1)+' 21:00:00'; // 送った時刻（出庫日の翌日の夜。締め切りの前）
+        reports.push(rep);
+      }
+      reports.sort(function(a,b){return a.date<b.date?-1:1});
+    })();
+    // ほかの人：昼勤5人・夜勤3人・隔日勤務3人。やはり昨日から100日ぶん。休みの日・ロングが空の日がある
+    var others=[['昼勤','タク太郎','大阪府'],['昼勤','なにわ号','大阪府'],['昼勤','しんちゃん','京都府'],['昼勤','ベテランK','兵庫県'],['昼勤','まーくん','大阪府'],['夜勤','ナイト山','東京都'],['夜勤','ふくちゃん','大阪府'],['夜勤','月夜のヒロ','京都府'],['隔日勤務','ぎんちゃん','大阪府'],['隔日勤務','ひとし','京都府'],['隔日勤務','ミドリ','大阪府']];
+    var oreps=[];
+    others.forEach(function(o,oi){
+      for(var i=0;i<=100;i++){ // ほかの人は今日の分から（自分は昨日から）。今日は、まだ自分の日報が無い
+        var n=(i*13+oi*29+oi*i)%1000;
+        if(oi!==1&&(n+oi)%6===0)continue;
+        if(oi===1&&i%2!==0)continue; // 嘱託は出勤できる日が少ない（2日に1日）
+        var e={who:'o'+oi,nick:o[1],pref:o[2],shift:o[0],date:Calc.addDays(iso0,-i),sales:r10(38000+((n*37+oi*911)%42000)),rides:12+(n%24),minutes:600+((n*11)%190),longFare:null,longFrom:'',longTo:'',me:false,kt:oi===1}; // なにわ号は嘱託（月の出勤が少ない）
+        if(n%5!==0){e.longFare=r10(4000+((n*131+oi*777)%20000));e.longFrom=PL_FROM[(n+oi)%4];e.longTo=PL_TO[(n+oi*2)%6]}
+        oreps.push(e);
+      }
+    });
+    // 平均用の日報（手で入れた日報も入る。平均に使う数字＝締め切りまでの数字）。自分は、ランキングに参加する人と、手書き日報の人だけ
+    function avgEntries(){
+      var all=oreps.slice();
+      if(me.rankJoin||me.reportType==='手書き日報')reports.forEach(function(r){var e=Calc.avgEntry(r);if(!e)return;all.push({who:'me',nick:me.nick||me.name,pref:me.pref,shift:me.shift,manual:!!r.manual,kt:me.contract==='嘱託',date:r.date,sales:e.sales,rides:e.rides,minutes:e.minutes,longFare:e.longFare,longFrom:e.longFrom,longTo:e.longTo,me:true})});
+      return all;
+    }
+    function entries(){
+      var all=oreps.slice();
+      if(me.rankJoin)reports.forEach(function(r){var e=Calc.rankEntry(r);if(!e)return;all.push({who:'me',nick:me.nick||me.name,pref:me.pref,shift:me.shift,manual:false,kt:me.contract==='嘱託',date:r.date,sales:e.sales,rides:e.rides,minutes:e.minutes,longFare:e.longFare,longFrom:e.longFrom,longTo:e.longTo,me:true})});
+      return all;
+    }
+    function delay(v,ms){return new Promise(function(r){setTimeout(function(){r(v)},ms||120)})}
+    function copy(o){return JSON.parse(JSON.stringify(o))}
+    function call(a,d){
+      if(a==='load')return delay({ok:true,me:copy(me),reports:copy(reports),terms:copy(terms),today:today?copy(today):null});
+      if(a==='saveSettings'){Object.assign(me,d.settings);return delay({ok:true})}
+      if(a==='saveTerm'){var t=terms[d.term]||(terms[d.term]={});if(d.goal!=null)t.goal=d.goal;if(d.planDays!=null)t.planDays=d.planDays;return delay({ok:true})}
+      if(a==='saveToday'){today={date:d.date,dep:d.dep,ret:d.ret,sales:d.sales,goal:d.goal};return delay({ok:true})}
+      if(a==='saveReport'){
+        // 手で入れた日報：「手入力」の印を付けて保存する。写真で送った日報は、手では直せない
+        var r=d.report,i=reports.findIndex(function(x){return x.date===r.date});
+        if(i>=0&&!reports[i].manual)return Promise.reject(new Error('写真で送った日報は、手では直せません。写真を送り直してください。'));
+        if(i>=0&&!d.overwrite)return delay({ok:true,status:'conflict',existing:copy(reports[i])});
+        var nr=copy(r);nr.manual=true;var hs=Calc.jstStamp(Date.now()),hu=Calc.rankUpdate(i>=0?reports[i]:null,nr,hs,nr.date,true);nr.sentAt=hs;nr.rankIn=hu.inRank;nr.rank=hu.rank; // 平均に使う数字（締め切りまでの数字）を別に持つ
+        if(i>=0)reports[i]=nr;else{reports.push(nr);reports.sort(function(x,y){return x.date<y.date?-1:1})}
+        return delay({ok:true,status:'ok',report:copy(nr)});
+      }
+      if(a==='submitReport'){
+        // 写真の日報：保存するのは、読み取りの結果（番号で引く）だけ。画面から来た売上などは使わない
+        var tk=tickets[d.ticket];
+        if(!tk)return Promise.reject(Object.assign(new Error('読み取りの結果が古くなりました。もう一度写真を送ってください。'),{code:'ticket'}));
+        var rp=Calc.reportFromTicket(tk,d.apps),k=reports.findIndex(function(x){return x.date===rp.date});
+        if(k>=0&&!d.overwrite)return delay({ok:true,status:'conflict',existing:copy(reports[k]),report:copy(rp)});
+        var stamp=Calc.jstStamp(Date.now()),ru=Calc.rankUpdate(k>=0?reports[k]:null,rp,stamp,rp.date);
+        rp.sentAt=stamp;rp.rankIn=ru.inRank;rp.rank=ru.rank; // 順位に使う数字は、日報とは別に持つ
+        if(k>=0)reports[k]=rp;else{reports.push(rp);reports.sort(function(x,y){return x.date<y.date?-1:1})}
+        delete tickets[d.ticket];
+        return delay({ok:true,status:'ok',report:copy(rp)});
+      }
+      if(a==='saveApps'){
+        var q=reports.findIndex(function(x){return x.date===d.date});
+        if(q<0)return Promise.reject(new Error('この日の日報がありません。'));
+        Object.keys(d.apps||{}).forEach(function(key){if(/^(app|cnt)(Uber|Go|Didi|Other)$/.test(key))reports[q][key]=d.apps[key]});
+        return delay({ok:true});
+      }
+      if(a==='read'){
+        if(me.reportType==='手書き日報')return Promise.reject(new Error('手書き日報の人は、写真の読み取りは使えません。手で入れてください。'));
+        var n=Calc.jstNow(Date.now()),id='tk'+(++tkn);
+        tickets[id]={date:n.iso,sales:61200,rides:24,minutes:731,longFare:18400,longFrom:'大阪府北区',longTo:'京都府向日市'};
+        return delay({ok:true,ticket:id,report:{departure:n.iso+' 15:52',sales:61200,rides:24,minutes:731,longFare:18400,longFrom:'大阪府北区',longTo:'京都府向日市',note:''},plan:{date:n.iso,night:false,warnings:[]}},700);
+      }
+      if(a==='ranking'){
+        if(!Calc.tabAccess(me).rank)return Promise.reject(Object.assign(new Error('ランキングに参加していません。'),{code:'not_joined'}));
+        var to=Calc.jstNow(Date.now()).iso,all=entries(),nicks={};
+        all.forEach(function(x){nicks[x.who]=x.nick});
+        if(d.mode==='daily'){
+          var pf=d.pref||'全国',rg=Calc.dateRange(all,d.shift,to,pf),date=/^\d{4}-\d{2}-\d{2}$/.test(d.date||'')&&d.date<=to?d.date:(rg.latest||to);
+          var rr=Calc.dailyRank(all,{shift:d.shift,date:date,metric:d.metric,pref:pf,avgEntries:avgEntries()});
+          return delay({ok:true,ranking:{mode:'daily',pref:pf,shift:d.shift,metric:d.metric,date:date,first:rg.first,today:to,final:Calc.rankState(date,Calc.jstStamp(Date.now())).final,closeAt:Calc.rankState(date,Calc.jstStamp(Date.now())).closeAt,count:rr.count,avg:rr.avg,rows:rr.rows.map(function(x){var o={rank:x.rank,nick:nicks[x.who],value:x.value,me:x.me};if(d.metric==='long'){o.from=x.from;o.to=x.to}return o})}});
+        }
+        var cur=Calc.termOf(to,RANK_CLOSE_DAY),pf2=d.pref||'全国';
+        var mr=Calc.monthRank(all,{shift:d.shift,pref:pf2,start:cur.start,end:cur.end,metric:d.metric,avgEntries:avgEntries()});
+        return delay({ok:true,ranking:{mode:'month',pref:pf2,shift:d.shift,metric:d.metric,count:mr.count,avg:mr.avg,from:cur.start,to:to,rows:mr.rows.map(function(x){return {rank:x.rank,nick:nicks[x.who],value:x.value,me:x.me}})}});
+      }
+      if(a==='podium'){
+        if(!(me.rankJoin&&me.reportType!=='手書き日報'))return Promise.reject(Object.assign(new Error('ランキングに参加していません。'),{code:'not_joined'}));
+        return delay({ok:true,podium:Calc.podiumCounts(entries(),{shift:me.shift,pref:me.pref,nowStamp:Calc.jstStamp(Date.now()),today:Calc.jstNow(Date.now()).iso,closeDay:RANK_CLOSE_DAY})});
+      }
+      if(a==='compare'){
+        var to2=Calc.jstNow(Date.now()).iso,all2=avgEntries(),pf3=d.pref||'全国';
+        if(d.mode==='daily'){
+          var tt=Calc.termById(d.term||Calc.termOf(to2,me.closeDay).id,me.closeDay),end=tt.end<to2?tt.end:to2;
+          return delay({ok:true,compare:{mode:'daily',pref:pf3,shift:d.shift,metric:d.metric,term:tt.id,from:tt.start,to:end,items:Calc.avgDaily(all2,{shift:d.shift,pref:pf3,metric:d.metric,start:tt.start,end:end})}});
+        }
+        return delay({ok:true,compare:{mode:'month',pref:pf3,shift:d.shift,metric:d.metric,items:Calc.avgMonths(all2,{shift:d.shift,pref:pf3,metric:d.metric,closeDay:me.closeDay,today:to2}).map(function(x){return {id:x.id,label:x.label,avg:x.avg}})}});
+      }
+      return Promise.reject(new Error('見本では使えない操作です。'));
+    }
+    return {call:call};
+  })();
+
+  boot();
+})();
+</script>
+</body>
+</html>
