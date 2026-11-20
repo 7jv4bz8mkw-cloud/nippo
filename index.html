@@ -8,6 +8,31 @@
 <meta name="apple-mobile-web-app-title" content="売上">
 <meta name="robots" content="noindex,nofollow">
 <title>タクシー日報</title>
+<script>
+/* ===== 着せ替え（デザインのテーマ）の一覧。足す時は、ここに1行と、下のCSSに1かたまり足す ===== */
+var SKINS=[
+  {id:'',name:'標準（今の見た目）',bar:''},
+  {id:'gold',name:'ブラックアンドゴールド',sw:['#0a0907','#e2c27a'],bar:'#0a0907'},
+  {id:'navy',name:'ミッドナイトネイビー',sw:['#081127','#9cbcff'],bar:'#081127'}
+];
+var SKIN_KEY='taxi-nippo-skin';
+/* 選んだテーマを画面に付ける。save が真の時だけ、この端末に覚える（読めない・書けない時は標準のまま） */
+function applySkin(id,save){
+  var ok=false;for(var i=0;i<SKINS.length;i++)if(SKINS[i].id===id)ok=true;
+  if(!ok)id='';
+  var el=document.documentElement;
+  if(id)el.setAttribute('data-skin',id);else el.removeAttribute('data-skin');
+  try{
+    var bar='';for(var j=0;j<SKINS.length;j++)if(SKINS[j].id===id)bar=SKINS[j].bar;
+    var m=document.querySelector('meta[name="theme-color"]');
+    if(bar){if(!m){m=document.createElement('meta');m.setAttribute('name','theme-color');document.head.appendChild(m)}m.setAttribute('content',bar)}
+    else if(m)m.parentNode.removeChild(m);
+  }catch(e){}
+  if(save){try{if(id)localStorage.setItem(SKIN_KEY,id);else localStorage.removeItem(SKIN_KEY)}catch(e){}}
+  return id;
+}
+(function(){var id='';try{id=localStorage.getItem(SKIN_KEY)||''}catch(e){}applySkin(id,false)})();
+</script>
 <style>
 /* 色の決まり。暗い表示の時は暗い色 */
 :root{--bg:#f3f5f8;--panel:#fff;--fg:#17202e;--muted:#5b6778;--line:#d9dfe7;--accent:#b7791f;--accent-soft:#f6ead2;--bar:#2f5d8c;--good:#17754d;--good-soft:#e2f3e9;--bad:#b3362c;--sat:#1f5fbf;--rec:#b3362c;--on-accent:#fff;--font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",system-ui,-apple-system,sans-serif;color-scheme:light}
@@ -276,6 +301,48 @@ tr.tap{cursor:pointer}
 tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line)}
 .mtable th{font-size:10.5px}.mtable td,.mtable th{white-space:nowrap}
 @media (max-width:360px){.big{font-size:26px}.rbar{grid-template-columns:6.4em minmax(0,1fr) 3em}}
+/* ===== 着せ替え（見た目だけ。大きさ・余白・配置は変えない。標準は属性なし＝上の色のまま） ===== */
+/* 設定の選ぶ欄（どのテーマでも同じ大きさ） */
+.skinhd{margin-top:14px}
+.skins{display:grid;gap:8px;margin-top:4px}
+.skinbtn{display:flex;align-items:center;gap:12px;width:100%;font:inherit;font-weight:700;color:var(--fg);background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;text-align:left}
+.skinbtn[aria-pressed="true"]{border-color:var(--accent)}
+.skinbtn .skw{flex:none;width:48px;height:28px;border-radius:6px;border:1px solid var(--line)}
+.skinbtn .mk{margin-left:auto;font-size:12px;color:var(--accent);white-space:nowrap}
+:root[data-skin]{background-repeat:no-repeat;background-attachment:fixed}
+:root[data-skin] body{background:transparent}
+:root[data-skin] input[type=text],:root[data-skin] input[type=time],:root[data-skin] input[type=date],:root[data-skin] input[type=number],:root[data-skin] select,:root[data-skin] .rv{background:var(--field)}
+:root[data-skin] .tabbar{border-top-color:var(--hair)}
+:root[data-skin] input::placeholder{opacity:.9} /* 暗い色でも薄い字が4.5:1に近く読めるよう、少し濃く */
+/* ---- ブラックアンドゴールド（gold） ---- */
+:root[data-skin="gold"]{--bg:#0a0907;--panel:#131210;--fg:#f3eee3;--muted:#a39b8b;--line:rgba(214,178,96,.32);--hair:rgba(214,178,96,.16);--field:#1b1915;--accent:#e2c27a;--accent-soft:rgba(226,194,122,.10);--bar:#c9a24d;--good:#4cc792;--good-soft:rgba(76,199,146,.12);--bad:#f08a80;--sat:#8fb4ff;--rec:#f08a80;--on-accent:#1b1408;color-scheme:dark;background-color:#0a0907;background-image:radial-gradient(120% 40% at 50% 0%,#1c1710 0%,#0a0907 60%)}
+[data-skin="gold"] .tophd h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;color:var(--accent)}
+/* カードの見出しは、明朝体にすると長い見出しの折り返しが変わって高さが変わるため、色だけ金にする */
+[data-skin="gold"] .card h2{color:var(--accent)}
+[data-skin="gold"] .card{box-shadow:inset 0 0 0 4px var(--panel),inset 0 0 0 5px var(--hair)}
+[data-skin="gold"] .card.pace-ok{box-shadow:none}
+[data-skin="gold"] .big{background:linear-gradient(180deg,#f7e2a6 10%,#d7ad55 60%,#b6872f);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+[data-skin="gold"] .card.pace-ok #td-need{background:none;color:var(--good);-webkit-text-fill-color:var(--good)}
+[data-skin="gold"] .btn:not(.sub),[data-skin="gold"] .cam{background:linear-gradient(180deg,#f1d892,#c49a42);color:#1b1408;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+[data-skin="gold"] .cam{box-shadow:0 0 0 4px #070605,0 0 0 5px var(--line),0 8px 20px -6px rgba(226,194,122,.5)}
+[data-skin="gold"] #mic:not(.on){background:radial-gradient(circle at 50% 35%,#2b2517,#14120e);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+[data-skin="gold"] .seg{background:#16130d;box-shadow:inset 0 0 0 1px var(--hair)}
+[data-skin="gold"] .seg button[aria-selected="true"]{background:#2a2417;color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
+[data-skin="gold"] .tabbar{background:#070605}
+[data-skin="gold"] .track{background:#28241c}
+[data-skin="gold"] .fill{background:linear-gradient(90deg,#b98f3a,#e2c27a)}
+[data-skin="gold"] .fill.good{background:linear-gradient(90deg,#2f9c6c,var(--good))}
+/* ---- ミッドナイトネイビー（navy） ---- */
+:root[data-skin="navy"]{--bg:#081127;--panel:#0f1b3a;--fg:#eef3ff;--muted:#93a3c8;--line:#22346a;--hair:rgba(160,190,255,.14);--field:#0b1530;--accent:#9cbcff;--accent-soft:rgba(156,188,255,.14);--bar:#6f97f2;--good:#5fe0a6;--good-soft:rgba(95,224,166,.12);--bad:#ff8f8f;--sat:#8fb4ff;--rec:#ff8f8f;--on-accent:#0a1430;color-scheme:dark;background-color:#081127;background-image:radial-gradient(1.2px 1.2px at 18% 7%,rgba(255,255,255,.7),transparent 60%),radial-gradient(1px 1px at 72% 4%,rgba(255,255,255,.55),transparent 60%),radial-gradient(1.4px 1.4px at 86% 11%,rgba(255,255,255,.6),transparent 60%),radial-gradient(1px 1px at 40% 13%,rgba(255,255,255,.45),transparent 60%),linear-gradient(180deg,#0c1840 0%,#081127 34%,#060d1f 100%)}
+[data-skin="navy"] .card:not(.pace-ok){background:linear-gradient(180deg,#152550,#0f1b3a)}
+[data-skin="navy"] .big{color:#fff}
+[data-skin="navy"] .card.pace-ok #td-need{color:var(--good)}
+[data-skin="navy"] .cam{background:radial-gradient(circle at 35% 30%,#dfe9ff,#9cbcff 60%,#6f97f2);color:#0a1430;box-shadow:0 0 0 4px #081127,0 0 22px rgba(156,188,255,.45)}
+[data-skin="navy"] .seg{background:rgba(10,20,48,.7);box-shadow:inset 0 0 0 1px var(--hair)}
+[data-skin="navy"] .seg button[aria-selected="true"]{background:#152550;color:var(--fg);box-shadow:inset 0 0 0 1px rgba(156,188,255,.35)}
+[data-skin="navy"] .track{background:#1c2b57}
+[data-skin="navy"] .fill{background:linear-gradient(90deg,#6f97f2,#9cbcff)}
+[data-skin="navy"] .fill.good{background:var(--good)}
 </style>
 </head>
 <body>
@@ -342,6 +409,9 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
       <label class="f" for="su-limit">月の乗務時間の上限（時間）</label>
       <input type="text" id="su-limit" inputmode="numeric" autocomplete="off">
       <label class="chk" style="margin-top:12px"><input type="checkbox" id="su-apps"><span>アプリ別の売上を入れる（Uber・GO・DiDi・配車その他）<small>チェックすると、日報ごとにアプリ別の金額を入れる欄が出て、今月の「月の合計」にアプリ別の合計が出ます</small></span></label>
+      <div class="f-like skinhd" id="su-skin-hd">デザイン・着せ替え</div>
+      <div class="skins" id="su-skins" role="group" aria-labelledby="su-skin-hd"></div>
+      <p class="t" style="margin:6px 0 0">この端末にだけ覚えます。</p>
     </div>
     <div id="su-foot">
       <p class="msg" id="su-msg" role="status"></p>
@@ -1700,7 +1770,33 @@ var Calc=(function(){
     $('su-back').hidden=S.firstTime;
     $('su-lead').textContent=S.firstTime?'あなたに合わせて、違う所だけ直してください。':'設定を直せます。';
   }
+  /* 設定の「デザイン・着せ替え」：一覧（SKINS）から選ぶボタンを作る。押すとすぐ反映して覚える */
+  function setupSkins(){
+    var box=$('su-skins'),cur=document.documentElement.getAttribute('data-skin')||'';
+    var dark=false;try{dark=window.matchMedia('(prefers-color-scheme: dark)').matches}catch(e){}
+    function mark(){
+      var now=document.documentElement.getAttribute('data-skin')||'';
+      Array.prototype.forEach.call(box.children,function(b){
+        var on=b.getAttribute('data-id')===now;
+        b.setAttribute('aria-pressed',on?'true':'false');
+        b.lastChild.textContent=on?'選択中':'';
+      });
+    }
+    SKINS.forEach(function(k){
+      var sw=k.sw||(dark?['#10151d','#f0b64b']:['#f3f5f8','#b7791f']);
+      var b=document.createElement('button');b.type='button';b.className='skinbtn';b.setAttribute('data-id',k.id);
+      var c=document.createElement('span');c.className='skw';
+      c.style.background='linear-gradient(180deg,'+sw[0]+' 0,'+sw[0]+' 55%,'+sw[1]+' 55%,'+sw[1]+' 72%,'+sw[0]+' 72%)';
+      var n=document.createElement('span');n.textContent=k.name;
+      var m=document.createElement('span');m.className='mk';
+      b.appendChild(c);b.appendChild(n);b.appendChild(m);
+      b.addEventListener('click',function(){applySkin(k.id,true);mark()});
+      box.appendChild(b);
+    });
+    mark();
+  }
   function setupSetup(){
+    setupSkins();
     fillPrefs($('su-pref'),false);
     exclusive('su-sei','su-sho');
     exclusive3(['su-day','su-night','su-kaku']);exclusive('su-mode-days','su-mode-hours');
