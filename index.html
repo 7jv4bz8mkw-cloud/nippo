@@ -1673,7 +1673,7 @@ var Calc=(function(){
     $('su-pref').value=m.pref||'大阪府';
     $('su-sei').checked=m.contract!=='嘱託';$('su-sho').checked=m.contract==='嘱託';
     $('su-day').checked=m.shift!=='夜勤'&&m.shift!=='隔日勤務';$('su-night').checked=m.shift==='夜勤';$('su-kaku').checked=m.shift==='隔日勤務';
-    $('su-name').value=m.name||'';
+    $('su-name').value=m.configured?(m.name||''):''; /* はじめの設定では空にする（作り手が付けた名前のメモをニックネームにしない。2026-11-20） */
     $('su-auto').checked=m.reportType!=='手書き日報';$('su-hand').checked=m.reportType==='手書き日報';
     $('su-join').checked=!!m.rankJoin&&m.reportType!=='手書き日報';$('su-nick').value=m.nick||'';
     applyType();
