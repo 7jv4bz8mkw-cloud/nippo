@@ -162,6 +162,7 @@ b.good{color:var(--good)}
 .mnav button:disabled{color:var(--muted);opacity:.45;cursor:default}
 .mnav span{text-align:center;font-weight:700}
 .per-ride{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-top:1px}
+.old-note{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:700;line-height:1.6}
 .rc-range{display:block;font-size:12px;font-weight:500;color:var(--muted)}
 .plan-note{margin-left:8px;font-size:11px;color:var(--muted)}
 table.mtable{font-size:11px}
@@ -495,6 +496,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
 
   <!-- 日報を送る -->
   <section id="v-report" class="stack" hidden>
+    <div class="old-note" id="rp-oldnote">2026年11月15日以前の日報の写真は、送らないでください。その日報を入れたい時は、「写真を使わずに、手で入れる」から入れてください。</div>
     <div class="card" id="rp-pick">
       <h2 id="rp-h">日報の写真を送る</h2>
       <p class="t" id="rp-pickintro" style="margin:0 0 4px">日報全体が写るように撮ってください。数字を読み取って、次の画面で確かめてから保存します。</p>
@@ -1798,6 +1800,7 @@ var Calc=(function(){
     $('rp-fix').hidden=!(S.me.appSales&&S.reports.length);RP.ticket='';RP.img1=null;RP.img2=null;RP.cur=null; // 写真は残さない
     var hand=!Calc.tabAccess(S.me).photo; // 手書き日報の人は「手で入れる」だけ
     $('rp-cam').hidden=hand;$('rp-file').hidden=hand;
+    $('rp-oldnote').hidden=!!hand; /* 写真を送る人だけに出す（2026-11-20 本人） */
     $('rp-h').textContent=hand?'日報を手で入れる':'日報の写真を送る';$('rp-hand').textContent=hand?'日報の数字を入れる':'写真を使わずに、手で入れる';/* 手書き日報の人の見出しとボタン（2026-11-20） */
     $('rp-pickintro').textContent=hand?'手書き日報の人は、数字を手で入れます。手で入れた日報は、ランキングには入りませんが、全体の平均には入ります。':'日報全体が写るように撮ってください。数字を読み取って、次の画面で確かめてから保存します。';
     show('report');
