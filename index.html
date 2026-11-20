@@ -176,7 +176,7 @@ b.good{color:var(--good)}
 .cptable{font-size:12.5px}
 .cptable th,.cptable td{padding:7px 3px;white-space:nowrap}
 .cptable td small.pct{display:block;font-size:10.5px;line-height:1.2}
-/* 日ごとの記録の表：6列をスマホの幅に収める */
+/* 日別の記録の表：6列をスマホの幅に収める */
 .dtable{font-size:12px}
 .dtable th,.dtable td{padding:7px 3px;white-space:nowrap}
 .dtable th{font-size:10.5px}
@@ -372,7 +372,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
         <label class="chk"><input type="checkbox" id="su-sei" checked><span>正社員</span></label>
         <label class="chk"><input type="checkbox" id="su-sho"><span>嘱託</span></label>
       </div>
-      <p class="t" style="margin:2px 0 0">嘱託は、月間の平均には入りません（日ごとの平均とランキングには入ります）</p>
+      <p class="t" style="margin:2px 0 0">嘱託は、月間の平均には入りません（日別の平均とランキングには入ります）</p>
       <label class="f">勤務</label>
       <div class="chkrow">
         <label class="chk"><input type="checkbox" id="su-day" checked><span>昼勤</span></label>
@@ -502,7 +502,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
   <!-- 記録 -->
   <section id="v-records" class="stack" hidden>
     <div class="card">
-      <h2>日ごとの記録</h2>
+      <h2>日別の記録</h2>
       <p class="t" style="margin:0">日報が入っている日を押すと、数字を直せます。</p>
       <div class="mnav"><button type="button" id="rc-prev" aria-label="前の月度を見る">‹ 前月</button><span class="num" id="rc-label"></span><button type="button" id="rc-next" aria-label="次の月度を見る">翌月 ›</button></div>
       <div class="tablewrap"><table class="dtable"><thead><tr><th scope="col">日付</th><th scope="col">売上</th><th scope="col">回数</th><th scope="col">平均単価</th><th scope="col">乗務時間</th><th scope="col">時間あたり</th><th scope="col" class="go" aria-hidden="true"></th></tr></thead><tbody id="rc-rows"></tbody></table></div>
@@ -517,7 +517,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
   <!-- 順位 -->
   <section id="v-rank" class="stack" hidden>
     <div>
-      <div class="seg" id="rk-mode" role="group" aria-label="日ごと・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日ごと</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
+      <div class="seg" id="rk-mode" role="group" aria-label="日別・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日別</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
       <div class="rk-row"><select id="rk-pref" aria-label="都道府県で分ける"></select>
       <div class="sw" id="rk-shifts" role="group" aria-label="勤務で分ける"><button type="button" data-shift="昼勤" aria-pressed="true">昼勤</button><button type="button" data-shift="夜勤" aria-pressed="false">夜勤</button><button type="button" data-shift="隔日勤務" aria-pressed="false">隔勤</button></div></div>
       <div class="sw" id="rk-metrics" role="group" aria-label="並べる数字"><button type="button" data-metric="hour" aria-pressed="true">時間平均単価</button><button type="button" data-metric="sales" aria-pressed="false">売上</button><button type="button" data-metric="rides" data-daily="1" aria-pressed="false">営業回数</button><button type="button" data-metric="long" data-daily="1" aria-pressed="false">ロング</button></div>
@@ -533,7 +533,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
   <!-- 比較：自分と平均の折れ線 -->
   <section id="v-compare" class="stack" hidden>
     <div>
-      <div class="seg" id="cp-mode" role="group" aria-label="日ごと・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日ごと</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
+      <div class="seg" id="cp-mode" role="group" aria-label="日別・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日別</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
       <p class="t" id="cp-who" style="margin:0 0 8px"></p>
       <div class="sw" id="cp-metrics" role="group" aria-label="比べる数字"><button type="button" data-metric="hour" aria-pressed="true">時間平均単価</button><button type="button" data-metric="sales" aria-pressed="false">売上</button><button type="button" data-metric="rides" aria-pressed="false">営業回数</button></div>
       <div class="mnav" id="cp-term" style="margin:0"><button type="button" id="cp-prev">‹ 前の月度</button><span class="num" id="cp-label"></span><button type="button" id="cp-next">次の月度 ›</button></div>
@@ -857,7 +857,7 @@ var Calc=(function(){
   }
 
 
-  // 日ごとの順位。entries は {who,shift,date,sales,rides,minutes,longFare,longFrom,longTo,me} の並び（日報1件ずつ）
+  // 日別の順位。entries は {who,shift,date,sales,rides,minutes,longFare,longFrom,longTo,me} の並び（日報1件ずつ）
   // o: {shift,date,metric('hour'|'sales'|'rides'|'long')}。同じ人は1回まで（一番高い1件）。ロングはベスト10まで
   function rankValue(e,metric){
     if(metric==='hour')return e.minutes>0?e.sales/(e.minutes/60):null;
@@ -989,7 +989,7 @@ var Calc=(function(){
     var val=t/n;
     return {value:metric==='rides'?Math.round(val*10)/10:Math.round(val),n:n,t:t,m:0};
   }
-  // 日ごとの平均。entries は順位と同じ（日報1件ずつ）。o:{shift,pref,metric,start,end}。日報の無い日は avg:null
+  // 日別の平均。entries は順位と同じ（日報1件ずつ）。o:{shift,pref,metric,start,end}。日報の無い日は avg:null
   function avgDaily(entries,o){
     var out=[],d=o.start;
     while(d<=o.end){
@@ -1004,7 +1004,7 @@ var Calc=(function(){
       return {id:t.id,label:t.label,start:t.start,end:t.end,avg:avgOneMonth(entries,o,t.start,t.end)};
     });
   }
-  // 自分の日ごと：日付 → {v,sales,minutes,rides}。出していない日は入らない
+  // 自分の日別：日付 → {v,sales,minutes,rides}。出していない日は入らない
   function meDaily(reports,metric,start,end){
     var out={};
     reports.forEach(function(r){
@@ -1026,7 +1026,7 @@ var Calc=(function(){
       return any?metricVal({sales:s,minutes:m,rides:rd},metric):null;
     });
   }
-  // 日ごとのひとこと用：自分が出した日（平均もある日）で、自分と平均を同じ式でまとめる
+  // 日別のひとこと用：自分が出した日（平均もある日）で、自分と平均を同じ式でまとめる
   function compareSummary(me,items,metric){
     var days=0,ms=0,mm=0,mv=0,mn=0,at=0,am=0,an=0;
     items.forEach(function(it){
@@ -1115,7 +1115,7 @@ var Calc=(function(){
     return out;
   }
   // 1・2・3位の回数（自分の分だけ）。entries は順位に使う数字の日報（ほかの人の分も含む。自分は me:true）。
-  // 確定した日（日ごと）と、終わった月度（月間）だけ。同じ順位が並んだ時は、並んだ全員に数える
+  // 確定した日（日別）と、終わった月度（月間）だけ。同じ順位が並んだ時は、並んだ全員に数える
   // o:{shift,pref,nowStamp,today,closeDay}。shift・pref は自分の今の設定
   function podiumCounts(entries,o){
     var out={daily:{hour:[0,0,0],sales:[0,0,0],rides:[0,0,0],long:[0,0,0]},month:{hour:[0,0,0],sales:[0,0,0]}},dates={},terms={};
@@ -1717,7 +1717,7 @@ var Calc=(function(){
     if(p.err){body.innerHTML='<p class="t" style="margin:8px 0 0">'+esc(p.err)+'</p>';return}
     var d=p.data,N={hour:'時間平均単価',sales:'売上',rides:'営業回数','long':'ロング'};
     var tbl=function(keys,src){return '<div class="pod"><span></span><span class="h"><i class="medal g">1</i></span><span class="h"><i class="medal s">2</i></span><span class="h"><i class="medal c">3</i></span>'+keys.map(function(k){return '<span class="m">'+N[k]+'</span><b>'+src[k].join('</b><b>')+'</b>'}).join('')+'</div>'};
-    body.innerHTML='<div class="mysec">日ごと（確定した日）</div>'+tbl(['hour','sales','rides','long'],d.daily)+'<div class="mysec">月間（終わった月度）</div>'+tbl(['hour','sales'],d.month);
+    body.innerHTML='<div class="mysec">日別（確定した日）</div>'+tbl(['hour','sales','rides','long'],d.daily)+'<div class="mysec">月間（終わった月度）</div>'+tbl(['hour','sales'],d.month);
   }
   function loadPodium(){
     if(!S.me||!(S.me.rankJoin&&Calc.tabAccess(S.me).canJoin))return;
