@@ -13,7 +13,9 @@
 var SKINS=[
   {id:'',name:'標準（今の見た目）',bar:''},
   {id:'gold',name:'ブラックアンドゴールド',sw:['#0a0907','#e2c27a'],bar:'#0a0907'},
-  {id:'navy',name:'ミッドナイトネイビー',sw:['#081127','#9cbcff'],bar:'#081127'}
+  {id:'navy',name:'ミッドナイトネイビー',sw:['#081127','#9cbcff'],bar:'#081127'},
+  {id:'sky',name:'スカイブルー',sw:['#eaf6ff','#0f6fd1'],bar:'#8fd0fb'},
+  {id:'pink',name:'ピンク',sw:['#fff0f6','#c2185b'],bar:'#fbc4d8'}
 ];
 var SKIN_KEY='taxi-nippo-skin';
 /* 選んだテーマを画面に付ける。save が真の時だけ、この端末に覚える（読めない・書けない時は標準のまま） */
@@ -343,6 +345,38 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
 [data-skin="navy"] .track{background:#1c2b57}
 [data-skin="navy"] .fill{background:linear-gradient(90deg,#6f97f2,#9cbcff)}
 [data-skin="navy"] .fill.good{background:var(--good)}
+/* ---- スカイブルー（sky）：明るい地。iPhoneが暗い表示でもこの色のまま ---- */
+:root[data-skin="sky"]{--bg:#eaf6ff;--panel:#fff;--fg:#0d2a4a;--muted:#4a6582;--line:#cfe3f5;--hair:#cfe3f5;--field:#f3f9ff;--accent:#0f6fd1;--accent-soft:#e4f2fd;--bar:#1784e0;--good:#0f7a4a;--good-soft:#e3f6ec;--bad:#b3362c;--sat:#1f5fbf;--rec:#b3362c;--on-accent:#fff;color-scheme:light;background-color:#eaf6ff;background-image:radial-gradient(60% 18% at 18% 4%,rgba(255,255,255,.95),transparent 70%),radial-gradient(45% 12% at 82% 9%,rgba(255,255,255,.85),transparent 70%),linear-gradient(180deg,#8fd0fb 0%,#c4e6fd 16%,#eaf6ff 34%,#f6fbff 100%)}
+[data-skin="sky"] .card:not(.pace-ok){background:rgba(255,255,255,.92);border-color:#fff;box-shadow:0 10px 24px -16px rgba(15,111,209,.45),0 1px 0 rgba(13,42,74,.04)}
+[data-skin="sky"] .card.pace-ok{border-color:#a9dfc3}
+[data-skin="sky"] .btn:not(.sub),[data-skin="sky"] .cam{background:linear-gradient(180deg,#1374d6,#0f6fd1);color:#fff;box-shadow:0 6px 14px -8px rgba(15,111,209,.8)}
+[data-skin="sky"] .cam{box-shadow:0 0 0 4px #f6fbff,0 8px 18px -6px rgba(15,111,209,.55)}
+[data-skin="sky"] .seg{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9)}
+[data-skin="sky"] .seg button[aria-selected="true"]{background:#fff;box-shadow:0 1px 3px rgba(13,42,74,.15)}
+[data-skin="sky"] .tabbar{background:rgba(255,255,255,.94)}
+[data-skin="sky"] .track{background:#dcecf9}
+[data-skin="sky"] .fill{background:linear-gradient(90deg,#2ea3f2,#0f6fd1)}
+[data-skin="sky"] .fill.good{background:linear-gradient(90deg,#3cc489,var(--good))}
+[data-skin="sky"] .tophd small{color:#28486b}
+[data-skin="sky"] .need{background:radial-gradient(90% 120% at 100% 0%,rgba(255,255,255,.28),transparent 55%),linear-gradient(135deg,#1274d4,#0b5fb8);color:#fff}
+/* ---- ピンク（pink）：透明感のある明るい地。良い知らせはティール ---- */
+:root[data-skin="pink"]{--bg:#fff0f6;--panel:#fff8fb;--fg:#3d1229;--muted:#7f5068;--line:#f0cfdd;--hair:#f0cfdd;--field:rgba(255,255,255,.7);--accent:#c2185b;--accent-soft:#fde4ee;--bar:#d81b60;--good:#0a736e;--good-soft:rgba(220,244,241,.85);--bad:#b3362c;--sat:#1f5fbf;--rec:#b3362c;--on-accent:#fff;color-scheme:light;background-color:#fff0f6;background-image:radial-gradient(60% 18% at 18% 4%,rgba(255,255,255,.95),transparent 70%),radial-gradient(45% 12% at 82% 9%,rgba(255,255,255,.85),transparent 70%),radial-gradient(70% 30% at 90% 55%,rgba(255,182,210,.55),transparent 70%),linear-gradient(180deg,#fbc4d8 0%,#fde0eb 18%,#fff0f6 40%,#fffafc 100%)}
+[data-skin="pink"] .card:not(.pace-ok){background:rgba(255,255,255,.62);border-color:rgba(255,255,255,.95);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);box-shadow:0 10px 26px -16px rgba(216,27,96,.35)}
+[data-skin="pink"] .card.pace-ok{border-color:#9fdcd4;color:#1d5a56}
+[data-skin="pink"] .card.pace-ok .t{color:#1d5a56}
+[data-skin="pink"] .btn:not(.sub),[data-skin="pink"] .cam{background:linear-gradient(180deg,#d02866,#c2185b);color:#fff;box-shadow:0 6px 14px -8px rgba(194,24,91,.8)}
+[data-skin="pink"] .cam{box-shadow:0 0 0 4px #fff8fb,0 8px 18px -6px rgba(194,24,91,.55)}
+[data-skin="pink"] .seg{background:rgba(255,255,255,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9)}
+[data-skin="pink"] .seg button[aria-selected="true"]{background:#fff;box-shadow:0 1px 3px rgba(61,18,41,.15)}
+[data-skin="pink"] .tabbar{background:rgba(255,250,252,.94)}
+[data-skin="pink"] .track{background:#f6dbe6}
+[data-skin="pink"] .fill{background:linear-gradient(90deg,#ec407a,#c2185b)}
+[data-skin="pink"] .fill.good{background:linear-gradient(90deg,#36c2b4,var(--good))}
+[data-skin="pink"] .tophd small{color:#5e3248}
+[data-skin="pink"] .need{background:radial-gradient(90% 120% at 100% 0%,rgba(255,255,255,.35),transparent 55%),linear-gradient(135deg,rgba(208,34,96,.94),rgba(190,22,88,.94));color:#fff}
+/* 目立つ帯の中の字は、どちらのテーマでも白（小さい字も読めるように） */
+[data-skin="sky"] .need .t,[data-skin="sky"] .need .big,[data-skin="pink"] .need .t,[data-skin="pink"] .need .big{color:#fff}
+[data-skin="sky"] .need .mo-split.two>div+div,[data-skin="pink"] .need .mo-split.two>div+div{border-left-color:rgba(255,255,255,.7)}
 </style>
 </head>
 <body>
