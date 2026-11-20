@@ -719,7 +719,9 @@ var Calc=(function(){
     var t={uber:0,go:0,didi:0,other:0,nUber:0,nGo:0,nDidi:0,nOther:0,hasCount:false};
     reports.forEach(function(r){
       if(r.date<start||r.date>end)return;
-      t.uber+=r.appUber||0;t.go+=r.appGo||0;t.didi+=r.appDidi||0;t.other+=r.appOther||0;
+      // 税込の印がある日報だけ ÷1.1 を円に四捨五入して税抜にする（印が無い昔の日報は税抜として足す）。件数はそのまま
+      var cv=r.appTax==='税込'?function(v){return Math.round((v||0)/1.1)}:function(v){return v||0};
+      t.uber+=cv(r.appUber);t.go+=cv(r.appGo);t.didi+=cv(r.appDidi);t.other+=cv(r.appOther);
       t.nUber+=r.cntUber||0;t.nGo+=r.cntGo||0;t.nDidi+=r.cntDidi||0;t.nOther+=r.cntOther||0;
       if(r.cntUber!=null||r.cntGo!=null||r.cntDidi!=null||r.cntOther!=null)t.hasCount=true;
     });
@@ -729,7 +731,7 @@ var Calc=(function(){
   function reportFromTicket(ticket,screen){
     var s=screen||{};
     return {date:ticket.date,sales:ticket.sales,rides:ticket.rides,minutes:ticket.minutes,longFare:ticket.longFare,longFrom:ticket.longFrom,longTo:ticket.longTo,manual:false,
-      appUber:s.appUber,appGo:s.appGo,appDidi:s.appDidi,appOther:s.appOther,cntUber:s.cntUber,cntGo:s.cntGo,cntDidi:s.cntDidi,cntOther:s.cntOther};
+      appUber:s.appUber,appGo:s.appGo,appDidi:s.appDidi,appOther:s.appOther,appTax:s.appTax,cntUber:s.cntUber,cntGo:s.cntGo,cntDidi:s.cntDidi,cntOther:s.cntOther};
   }
   // 本日の売上目標の根拠の文（残りの日数がどれで決まったかに合わせる）。目標が出ていない時は null
   function basisText(s,set,term){
@@ -1348,7 +1350,7 @@ var Calc=(function(){
       var iso=Calc.addDays(t.start,i),rec=byDate[iso],tr=document.createElement('tr');
       if(!rec)tr.className='off';
       else{tr.className='tap';tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',dlabel2(iso)+' の日報を直す');
-        (function(r){var go=function(){RP.thumb='';if(!r.manual){openApps(r,'records');return}RP.mode='edit';fillCheck({date:r.date,sales:r.sales,rides:r.rides,minutes:r.minutes,longFare:r.longFare,longFrom:r.longFrom,longTo:r.longTo,appUber:r.appUber,appGo:r.appGo,appDidi:r.appDidi,appOther:r.appOther,cntUber:r.cntUber,cntGo:r.cntGo,cntDidi:r.cntDidi,cntOther:r.cntOther,night:false},'',[],'edit');show('report')};
+        (function(r){var go=function(){RP.thumb='';if(!r.manual){openApps(r,'records');return}RP.mode='edit';fillCheck({date:r.date,sales:r.sales,rides:r.rides,minutes:r.minutes,longFare:r.longFare,longFrom:r.longFrom,longTo:r.longTo,appUber:r.appUber,appGo:r.appGo,appDidi:r.appDidi,appOther:r.appOther,appTax:r.appTax,cntUber:r.cntUber,cntGo:r.cntGo,cntDidi:r.cntDidi,cntOther:r.cntOther,night:false},'',[],'edit');show('report')};
           tr.addEventListener('click',go);tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})})(rec)}
       var c0=document.createElement('td');c0.textContent=dlabel2(iso);if(Calc.dow(iso)===0||isHolidayJP(iso))c0.className='sun';else if(Calc.dow(iso)===6)c0.className='sat'; /* 土曜は青、日曜・祝日は赤（2026-11-18 本人） */tr.appendChild(c0);
       var c1=document.createElement('td');c1.textContent=rec?rec.sales.toLocaleString('ja-JP'):'—';tr.appendChild(c1);
@@ -1743,12 +1745,14 @@ var Calc=(function(){
   // アプリ別の売上（円）・件数（件）の欄。p は欄の名前の頭（rp＝手で入れる画面、pp＝写真の画面）
   var APPK=[['uber','Uber','appUber','cntUber'],['go','GO','appGo','cntGo'],['didi','DiDi','appDidi','cntDidi'],['other','配車その他','appOther','cntOther']];
   function buildApps(el,p){
-    el.innerHTML='<div class="grid2">'+APPK.map(function(a){
+    el.innerHTML='<div class="taxrow" role="radiogroup" aria-label="金額は税込か税抜か" style="display:flex;gap:18px;align-items:center;margin-bottom:8px;font-weight:700"><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="'+p+'-tax" id="'+p+'-tax-in" value="税込" checked>税込</label><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="'+p+'-tax" id="'+p+'-tax-ex" value="税抜">税抜</label></div><div class="grid2">'+APPK.map(function(a){
       return '<div class="appcell"><span class="t" style="font-weight:700;color:var(--fg)">'+a[1]+'</span><input type="text" inputmode="numeric" autocomplete="off" id="'+p+'-a-'+a[0]+'" placeholder="売上（円）" aria-label="'+a[1]+'の売上（円）"><input type="text" inputmode="numeric" autocomplete="off" id="'+p+'-n-'+a[0]+'" placeholder="件数（件）" aria-label="'+a[1]+'の件数（件）"></div>';
     }).join('')+'</div>';
     APPK.forEach(function(a){$(p+'-a-'+a[0]).addEventListener('change',function(){var n=Calc.parseAmount(this.value);if(n!==null)this.value=n.toLocaleString('ja-JP')})});
   }
   function writeApps(p,r){
+    // 保存した印のまま出す。印が無い（新しく入れる）時は税込
+    $(p+'-tax-'+(r.appTax==='税抜'?'ex':'in')).checked=true;
     APPK.forEach(function(a){
       $(p+'-a-'+a[0]).value=r[a[2]]>0?Number(r[a[2]]).toLocaleString('ja-JP'):'';
       $(p+'-n-'+a[0]).value=r[a[3]]>0?String(r[a[3]]):'';
@@ -1756,7 +1760,7 @@ var Calc=(function(){
   }
   // 空はそのまま（null）。数字でない時だけ、欄の下に出す知らせを返す
   function readApps(p){
-    var out={};
+    var out={appTax:$(p+'-tax-ex').checked?'税抜':'税込'};
     for(var q=0;q<APPK.length;q++){
       var a=APPK[q],sv=toNum($(p+'-a-'+a[0]).value),nv=toNum($(p+'-n-'+a[0]).value);
       if(sv!==null&&(isNaN(sv)||sv<0))return {err:a[1]+'の売上を数字で入れてください（空でもかまいません）。',id:p+'-a-'+a[0]};
@@ -1907,7 +1911,7 @@ var Calc=(function(){
   }
   function finishSave(rep){
     var i=S.reports.findIndex(function(d){return d.date===rep.date});
-    if(i>=0){if(rep.appUber===undefined){['appUber','appGo','appDidi','appOther','cntUber','cntGo','cntDidi','cntOther'].forEach(function(k){rep[k]=S.reports[i][k]})}S.reports[i]=rep}else S.reports.push(rep);
+    if(i>=0){if(rep.appUber===undefined){['appUber','appGo','appDidi','appOther','appTax','cntUber','cntGo','cntDidi','cntOther'].forEach(function(k){rep[k]=S.reports[i][k]})}S.reports[i]=rep}else S.reports.push(rep);
     S.reports.sort(function(a,b){return a.date<b.date?-1:1});
     var edit=RP.edit;if(!edit)S.viewTerm=null;RP.saving=false;RP.img1=null;RP.img2=null;
     renderAll();show(edit?'records':'today'); // 送信のあとはホームに戻る
@@ -2064,7 +2068,7 @@ var Calc=(function(){
         var rep={date:d,sales:r10(36000+((n*7919)%42000)),rides:14+(n%17),minutes:620+((n*17)%160),longFare:null,longFrom:'',longTo:''};
         if(n%4!==0){rep.longFare=r10(5000+((n*97)%12000));rep.longFrom=PL_FROM[n%4];rep.longTo=PL_TO[n%6]}
         // アプリ別の売上（チェックした時に見える見本）：4日に3日は入っている。Uberが多く、DiDiは入らない日がある
-        if(i%4!==0){rep.appUber=r10(rep.sales*0.42);rep.appGo=r10(rep.sales*0.25);rep.appDidi=i%2?r10(rep.sales*0.1):null;rep.appOther=r10(rep.sales*0.06);rep.cntUber=6+(n%5);rep.cntGo=3+(n%4);rep.cntDidi=i%2?2:null;rep.cntOther=1}
+        if(i%4!==0){rep.appUber=r10(rep.sales*0.42);rep.appGo=r10(rep.sales*0.25);rep.appDidi=i%2?r10(rep.sales*0.1):null;rep.appOther=r10(rep.sales*0.06);rep.appTax='税抜';rep.cntUber=6+(n%5);rep.cntGo=3+(n%4);rep.cntDidi=i%2?2:null;rep.cntOther=1}
         rep.sentAt=Calc.addDays(d,1)+' 21:00:00'; // 送った時刻（出庫日の翌日の夜。締め切りの前）
         reports.push(rep);
       }
@@ -2125,7 +2129,8 @@ var Calc=(function(){
       if(a==='saveApps'){
         var q=reports.findIndex(function(x){return x.date===d.date});
         if(q<0)return Promise.reject(new Error('この日の日報がありません。'));
-        Object.keys(d.apps||{}).forEach(function(key){if(/^(app|cnt)(Uber|Go|Didi|Other)$/.test(key))reports[q][key]=d.apps[key]});
+        if(d.apps&&d.apps.appTax!==undefined&&d.apps.appTax!=='税込'&&d.apps.appTax!=='税抜')return Promise.reject(new Error('税込か税抜かの印が正しくありません。'));
+        Object.keys(d.apps||{}).forEach(function(key){if(/^(app|cnt)(Uber|Go|Didi|Other)$/.test(key)||key==='appTax')reports[q][key]=d.apps[key]});
         return delay({ok:true});
       }
       if(a==='read'){
