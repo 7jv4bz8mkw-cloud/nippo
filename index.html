@@ -247,6 +247,8 @@ table.mtable{font-size:11px}
 .ro b{font-variant-numeric:tabular-nums;text-align:right}
 .ro small{display:block;font-weight:500;color:var(--muted);font-size:12px}
 .okwrap{margin:22px 0 14px}
+.okbig.box{border:2px solid var(--accent);border-radius:12px;padding:16px 14px;min-height:60px;background:var(--panel)} /* 枠のどこを押してもチェック（2026-11-21 本人：撮り直しと近すぎた） */
+.retake{margin-top:36px;padding-top:16px;border-top:1px dashed var(--line)} /* 撮り直しは送信・やめるより下に離して置く */
 .okbig{display:flex;align-items:center;gap:12px;font-weight:800;font-size:18px;cursor:pointer}
 .okbig input{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:28px;margin:0;border:3px solid var(--accent);border-radius:7px;background:var(--panel);display:grid;place-items:center;cursor:pointer}
 .okbig input:checked{background:var(--accent)}
@@ -634,8 +636,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
         <p class="t" style="margin:6px 0 0">日報が2枚になる日は、2枚目（営業の続き）を足すと、ロングを2枚の中から探します。</p>
       </div>
       <div class="okwrap" id="pp-okwrap">
-        <label class="okbig"><input type="checkbox" id="pp-ok"><span>写真の日報と同じです</span></label>
-        <button type="button" class="linkbtn" id="pp-retake">違う所がある → 写真を撮り直す</button>
+        <label class="okbig box"><input type="checkbox" id="pp-ok"><span>写真の日報と同じです</span></label>
       </div>
       <p class="t" id="pp-fixnote" hidden style="margin:0">売上などが違う時は、写真を送り直してください。</p>
       <div class="card" id="pp-appcard" hidden>
@@ -651,6 +652,14 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
       <p class="hint1" id="pp-hint">上の「写真の日報と同じです」にチェックを入れると、送信できます</p>
       <button type="button" class="btn wide" id="pp-send" style="margin-top:0">送信する</button>
       <button type="button" class="btn sub wide" id="pp-cancel" style="border:0;margin-top:0">やめる</button>
+      <div class="retake" id="pp-retakewrap">
+        <p class="t" style="margin:0">読み取った数字が写真の日報と違う時だけ</p>
+        <button type="button" class="linkbtn" id="pp-retake">写真を撮り直す</button>
+        <div class="confirm" id="pp-retakeask" hidden>
+          <b>今の読み取りを消して、写真を撮り直しますか？新しい写真を、もう1回読み取ります。</b>
+          <div class="row"><button type="button" class="btn" id="pp-retakeyes">撮り直す</button><button type="button" class="btn sub" id="pp-retakeno">もどる</button></div>
+        </div>
+      </div>
     </div>
     <!-- あとから直す入口：日付を選ぶ -->
     <div class="card" id="rp-rescue" hidden>
@@ -1454,7 +1463,7 @@ var Calc=(function(){
       var iso=Calc.addDays(t.start,i),rec=byDate[iso],tr=document.createElement('tr');
       if(!rec)tr.className='off';
       else{tr.className='tap';tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',dlabel2(iso)+' の日報を直す');
-        (function(r){var go=function(){RP.thumb='';if(!r.manual){openApps(r,'records');return}RP.mode='edit';fillCheck({date:r.date,sales:r.sales,rides:r.rides,minutes:r.minutes,longFare:r.longFare,longFrom:r.longFrom,longTo:r.longTo,appUber:r.appUber,appGo:r.appGo,appDidi:r.appDidi,appOther:r.appOther,appTax:r.appTax,cntUber:r.cntUber,cntGo:r.cntGo,cntDidi:r.cntDidi,cntOther:r.cntOther,night:false},'',[],'edit');show('report')};
+        (function(r){var go=function(){RP.held=false;RP.thumb='';if(!r.manual){openApps(r,'records');return}RP.mode='edit';fillCheck({date:r.date,sales:r.sales,rides:r.rides,minutes:r.minutes,longFare:r.longFare,longFrom:r.longFrom,longTo:r.longTo,appUber:r.appUber,appGo:r.appGo,appDidi:r.appDidi,appOther:r.appOther,appTax:r.appTax,cntUber:r.cntUber,cntGo:r.cntGo,cntDidi:r.cntDidi,cntOther:r.cntOther,night:false},'',[],'edit');show('report')};
           tr.addEventListener('click',go);tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})})(rec)}
       var c0=document.createElement('td');c0.textContent=dlabel2(iso);if(Calc.dow(iso)===0||isHolidayJP(iso))c0.className='sun';else if(Calc.dow(iso)===6)c0.className='sat'; /* 土曜は青、日曜・祝日は赤（2026-11-18 本人） */tr.appendChild(c0);
       var c1=document.createElement('td');c1.textContent=rec?rec.sales.toLocaleString('ja-JP'):'—';tr.appendChild(c1);
@@ -1908,7 +1917,7 @@ var Calc=(function(){
     $('pp-ro').innerHTML=rows.map(function(x){return '<div class="ro"><span>'+x[0]+'</span><b>'+(x[0].indexOf('ロング')===0&&lg?x[1]:esc(x[1]))+'</b></div>'}).join('');
     var th=$('pp-thumb');if(!apps&&RP.thumb){th.src=RP.thumb;th.hidden=false}else{th.removeAttribute('src');th.hidden=true}
     var wb=$('pp-warn');wb.hidden=!(warns&&warns.length);wb.innerHTML=(warns||[]).map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
-    $('pp-okwrap').hidden=apps;$('pp-ok').checked=false;
+    $('pp-okwrap').hidden=apps;$('pp-ok').checked=false;$('pp-retakewrap').hidden=apps;$('pp-retakeask').hidden=true;
     $('pp-second').hidden=apps;$('pp-add2pick').hidden=true;
     $('pp-add2note').hidden=!RP.img2;$('pp-add2').textContent=RP.img2?'2枚目を撮り直す':'2枚目（営業の続き）を足す';
     $('pp-fixnote').hidden=!apps||!!r.manual;
@@ -1923,13 +1932,16 @@ var Calc=(function(){
   }
   // あとから直す入口：日付を選ぶ（from は戻り先。マイページから開いた時は 'my'）
   function openRescue(from){
+    RP.held=false;
     RP.rescueFrom=from;
     var sel=$('rs-date');sel.innerHTML='';
     S.reports.slice().reverse().forEach(function(r){var o=document.createElement('option');o.value=r.date;o.textContent=dlabel(r.date);sel.appendChild(o)});
     show('report');rpStage('rescue');
   }
-  function openApps(r,back){RP.date=r.date;RP.backTo=back;RP.thumb='';showPhoto('apps',r,[]);show('report')}
+  function openApps(r,back){RP.held=false;RP.date=r.date;RP.backTo=back;RP.thumb='';showPhoto('apps',r,[]);show('report')}
   function openReport(){
+    // 読み取り中・読み取った日報が送っていないまま残っている時は、その画面に戻すだけ（読み取り直さない。2026-11-21 本人）
+    if(RP.held){var was=S.view==='report';show('report');showToast(was?'読み取った日報は、この画面のままです':'読み取った日報の画面に戻りました');return}
     setMsg($('rp-pickmsg'),'');rpStage('pick');$('in-cam').value='';$('in-file').value='';
     $('rp-fix').hidden=!(S.me.appSales&&S.reports.length);RP.ticket='';RP.img1=null;RP.img2=null;RP.cur=null; // 写真は残さない
     var hand=!Calc.tabAccess(S.me).photo; // 手書き日報の人は「手で入れる」だけ
@@ -1980,13 +1992,13 @@ var Calc=(function(){
   function onPhoto(file){
     if(!file)return;
     setMsg($('rp-pickmsg'),'');
-    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';
+    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';RP.held=true;RP.mode='photo';
     shrink(file).then(function(dataUrl){
       RP.thumb=dataUrl;RP.img1=dataUrl.split(',')[1];RP.img2=null;
       $('rp-waittext').textContent='写真を読み取っています（10秒ほどかかります）';
       return api('read',{b64:RP.img1,mediaType:'image/jpeg'});
     }).then(function(j){
-      if(j.notReport){rpStage('pick');setMsg($('rp-pickmsg'),'日報の写真ではないようです。日報全体が写った写真を選び直すか、手で入れてください。',true);return}
+      if(j.notReport){RP.held=false;rpStage('pick');setMsg($('rp-pickmsg'),'日報の写真ではないようです。日報全体が写った写真を選び直すか、手で入れてください。',true);return}
       RP.ticket=j.ticket;
       var wl=(j.plan.warnings||[]).slice();if(j.plan.night)wl.push('夜中（6時より前）の出庫なので、前の日の日報にしています。');if(j.report.note)wl.push('読み取りの時のメモ：'+j.report.note);
       var r0={date:j.plan.date,sales:j.report.sales,rides:j.report.rides,minutes:j.report.minutes,longFare:j.report.longFare,longFrom:j.report.longFrom,longTo:j.report.longTo,manual:false};
@@ -1994,7 +2006,7 @@ var Calc=(function(){
       showPhoto('photo',r0,wl);
       var ex=S.reports.find(function(d){return d.date===r0.date});if(ex&&S.me.appSales)writeApps('pp',ex);
     },function(e){
-      rpStage('pick');
+      RP.held=false;rpStage('pick');
       setMsg($('rp-pickmsg'),e.message==='decode'?'この写真を読み込めませんでした。別の写真を選ぶか、撮り直してください。手で入れることもできます。':e.message+' 手で入れることもできます。',true);
     });
   }
@@ -2043,7 +2055,7 @@ var Calc=(function(){
     var i=S.reports.findIndex(function(d){return d.date===rep.date});
     if(i>=0){if(rep.appUber===undefined){['appUber','appGo','appDidi','appOther','appTax','cntUber','cntGo','cntDidi','cntOther'].forEach(function(k){rep[k]=S.reports[i][k]})}S.reports[i]=rep}else S.reports.push(rep);
     S.reports.sort(function(a,b){return a.date<b.date?-1:1});
-    var edit=RP.edit;if(!edit)S.viewTerm=null;RP.saving=false;RP.img1=null;RP.img2=null;
+    var edit=RP.edit;if(!edit)S.viewTerm=null;RP.saving=false;RP.held=false;RP.img1=null;RP.img2=null;
     renderAll();show(edit?'records':'today'); // 送信のあとはホームに戻る
     showBanner(mdLabel(rep.date)+' の日報を保存しました');
   }
@@ -2078,8 +2090,10 @@ var Calc=(function(){
     $('rp-hand').addEventListener('click',function(){RP.thumb='';RP.mode='hand';fillCheck({date:todayIso(),sales:null,rides:null,minutes:0,night:false},'',[],'hand')});
     buildApps($('rp-appgrid'),'rp');buildApps($('pp-apps'),'pp');
     $('pp-ok').addEventListener('change',function(){$('pp-send').disabled=!$('pp-ok').checked;$('pp-hint').hidden=$('pp-ok').checked});
-    $('pp-retake').addEventListener('click',function(){RP.ticket='';RP.thumb='';openReport()});
-    $('pp-cancel').addEventListener('click',function(){if(RP.mode==='apps'&&RP.backTo)show(RP.backTo);else show(S.tab==='rank'&&!Calc.tabAccess(S.me).rank?'today':S.tab)});
+    $('pp-retake').addEventListener('click',function(){$('pp-retakeask').hidden=false;$('pp-retakeask').scrollIntoView({block:'center'})});
+    $('pp-retakeno').addEventListener('click',function(){$('pp-retakeask').hidden=true});
+    $('pp-retakeyes').addEventListener('click',function(){RP.held=false;RP.ticket='';RP.thumb='';openReport()});
+    $('pp-cancel').addEventListener('click',function(){if(RP.mode!=='apps')RP.held=false;if(RP.mode==='apps'&&RP.backTo)show(RP.backTo);else show(S.tab==='rank'&&!Calc.tabAccess(S.me).rank?'today':S.tab)});
     function ppSend(overwrite){
       if(RP.saving)return;
       var a=readApps('pp');
@@ -2105,7 +2119,7 @@ var Calc=(function(){
         RP.ticket='';done();finishSave(j.report);
       },function(e){
         done();
-        if(e.code==='ticket'){rpStage('pick');setMsg($('rp-pickmsg'),e.message,true);return}
+        if(e.code==='ticket'){RP.held=false;rpStage('pick');setMsg($('rp-pickmsg'),e.message,true);return}
         setMsg($('pp-msg'),e.message,true);
       });
     }
