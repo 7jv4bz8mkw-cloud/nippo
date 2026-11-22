@@ -1342,28 +1342,45 @@ var Calc=(function(){
     // マイク：ブラウザが声の聞き取りに対応している時だけ出す
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR)return;
-    var mic=$('mic'),rec=null;
+    var mic=$('mic'),rec=null,last=null,endedAt=0,retried=false;
     mic.hidden=false;
+    // iPhoneのSafariは、前の聞き取りが止まりきる前に次を始めると失敗する（1回目は聞けて2回目から失敗する。2026-11-22 本人）。
+    // 前の聞き取りを必ず止めてから、少し間をあけて始める。失敗した時は1回だけ自動でやり直し、理由の記号も出す。
     var stop=function(){mic.classList.remove('on');mic.setAttribute('aria-label','声で売上を入れる');rec=null};
-    mic.addEventListener('click',function(){
-      if(rec){rec.stop();return}
-      rec=new SR();rec.lang='ja-JP';rec.interimResults=false;rec.maxAlternatives=3;
+    var FALLBACK='売上の欄を押して、キーボードのマイクで話しても入れられます。';
+    function begin(){
+      var r=new SR();rec=r;last=r;r.lang='ja-JP';r.interimResults=false;r.maxAlternatives=3;r.continuous=false;
       var got=false;
-      rec.onresult=function(e){
+      r.onresult=function(e){
         var alts=e.results[0],n=null,heard='';
         for(var i=0;i<alts.length&&n===null;i++){heard=heard||alts[i].transcript;n=Calc.parseAmount(alts[i].transcript)}
-        got=true;
+        got=true;retried=false;
         if(n===null){S.micMsg='「'+heard+'」と聞こえました。金額だけをもう一度話してください。';renderToday();return}
         se.value=n.toLocaleString('ja-JP');S.today.sales=se.value;S.micMsg='';renderToday();saveToday();
       };
-      rec.onerror=function(e){
+      r.onerror=function(e){
         got=true;
-        S.micMsg=e.error==='not-allowed'||e.error==='service-not-allowed'?'マイクが許可されていません。ブラウザの設定で、このページのマイクを許可してください。':e.error==='no-speech'?'聞き取れませんでした。マイクのボタンを押して、もう一度話してください。':'聞き取りに失敗しました。もう一度押してください。';
-        renderToday();
+        var code=e.error||'';
+        if(code==='not-allowed'||code==='service-not-allowed'){S.micMsg='マイクが許可されていません。iPhoneの「設定」→「一般」→「キーボード」で「音声入力」をオンにしてください。'+FALLBACK;renderToday();return}
+        if(code==='no-speech'){S.micMsg='聞き取れませんでした。マイクのボタンを押して、もう一度話してください。';renderToday();return}
+        // aborted・audio-capture など：前の聞き取りが残っていた時。1回だけ自動でやり直す
+        if(!retried){retried=true;r.onend=null;stop();endedAt=Date.now();setTimeout(start,500);return}
+        retried=false;
+        S.micMsg='聞き取りに失敗しました（'+code+'）。もう一度押してください。'+FALLBACK;renderToday();
       };
-      rec.onend=function(){stop();if(!got){S.micMsg='聞き取れませんでした。マイクのボタンを押して、もう一度話してください。';renderToday()}};
-      try{rec.start();mic.classList.add('on');mic.setAttribute('aria-label','聞き取りを止める');S.micMsg='聞いています。「2万5000円」のように金額を話してください。';renderToday()}
-      catch(err){stop();S.micMsg='聞き取りを始められませんでした。もう一度押してください。';renderToday()}
+      r.onend=function(){endedAt=Date.now();if(rec===r)stop();if(!got){S.micMsg='聞き取れませんでした。マイクのボタンを押して、もう一度話してください。';renderToday()}};
+      try{r.start();mic.classList.add('on');mic.setAttribute('aria-label','聞き取りを止める');S.micMsg='聞いています。「2万5000円」のように金額を話してください。';renderToday()}
+      catch(err){stop();S.micMsg='聞き取りを始められませんでした。もう一度押してください。'+FALLBACK;renderToday()}
+    }
+    function start(){
+      // 前の聞き取りが残っていれば止め、止まってから0.4秒あけて始める
+      if(last){try{last.onend=null;last.onerror=null;last.onresult=null;last.abort()}catch(e){}last=null;endedAt=Date.now()}
+      var wait=Math.max(0,400-(Date.now()-endedAt));
+      if(wait){S.micMsg='準備しています…';renderToday();setTimeout(begin,wait)}else begin();
+    }
+    mic.addEventListener('click',function(){
+      if(rec){try{rec.stop()}catch(e){}return}
+      retried=false;start();
     });
   }
 
