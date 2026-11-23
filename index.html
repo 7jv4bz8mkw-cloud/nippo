@@ -1347,7 +1347,21 @@ var Calc=(function(){
     // iPhoneのSafariは、前の聞き取りが止まりきる前に次を始めると失敗する（1回目は聞けて2回目から失敗する。2026-11-22 本人）。
     // 前の聞き取りを必ず止めてから、少し間をあけて始める。失敗した時は1回だけ自動でやり直し、理由の記号も出す。
     var stop=function(){mic.classList.remove('on');mic.setAttribute('aria-label','声で売上を入れる');rec=null};
-    var FALLBACK='売上の欄を押して、キーボードのマイクで話しても入れられます。';
+    var FALLBACK='マイクのボタンをもう一度押すと、キーボードのマイクで入れられます。';
+    // ホーム画面から開いたアプリでは、iPhoneは声の聞き取り（このボタンの仕組み）を正式には使わせない（1回目だけ動き、2回目から aborted。2026-11-23 本人）。
+    // その時と、Safariで失敗した次の1回は、売上の欄をふつうのキーボード（数字だけのキーボードにはマイクが無い）で開き、キーボードのマイクで話してもらう。
+    var useKeyboard=window.navigator.standalone===true;
+    function keyboardMode(){
+      se.setAttribute('inputmode','text');se.blur();
+      S.micMsg='キーボードのマイクのボタン（下の方）を押して、「2万5000円」のように話してください。話し終わったら「完了」を押してください。';renderToday();
+      se.focus();se.select();
+    }
+    se.addEventListener('blur',function(){
+      if(se.getAttribute('inputmode')!=='text')return;
+      se.setAttribute('inputmode','numeric');
+      var n=Calc.parseAmount(se.value);if(n!==null)se.value=n.toLocaleString('ja-JP');
+      S.today.sales=se.value;S.micMsg='';renderToday();saveToday();
+    });
     function begin(){
       var r=new SR();rec=r;last=r;r.lang='ja-JP';r.interimResults=false;r.maxAlternatives=3;r.continuous=false;
       var got=false;
@@ -1365,12 +1379,12 @@ var Calc=(function(){
         if(code==='no-speech'){S.micMsg='聞き取れませんでした。マイクのボタンを押して、もう一度話してください。';renderToday();return}
         // aborted・audio-capture など：前の聞き取りが残っていた時。1回だけ自動でやり直す
         if(!retried){retried=true;r.onend=null;stop();endedAt=Date.now();setTimeout(start,500);return}
-        retried=false;
-        S.micMsg='聞き取りに失敗しました（'+code+'）。もう一度押してください。'+FALLBACK;renderToday();
+        retried=false;useKeyboard=true;
+        S.micMsg='聞き取りに失敗しました（'+code+'）。'+FALLBACK;renderToday();
       };
       r.onend=function(){endedAt=Date.now();if(rec===r)stop();if(!got){S.micMsg='聞き取れませんでした。マイクのボタンを押して、もう一度話してください。';renderToday()}};
       try{r.start();mic.classList.add('on');mic.setAttribute('aria-label','聞き取りを止める');S.micMsg='聞いています。「2万5000円」のように金額を話してください。';renderToday()}
-      catch(err){stop();S.micMsg='聞き取りを始められませんでした。もう一度押してください。'+FALLBACK;renderToday()}
+      catch(err){stop();useKeyboard=true;S.micMsg='聞き取りを始められませんでした。'+FALLBACK;renderToday()}
     }
     function start(){
       // 前の聞き取りが残っていれば止め、止まってから0.4秒あけて始める
@@ -1380,6 +1394,7 @@ var Calc=(function(){
     }
     mic.addEventListener('click',function(){
       if(rec){try{rec.stop()}catch(e){}return}
+      if(useKeyboard){keyboardMode();return}
       retried=false;start();
     });
   }
