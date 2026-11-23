@@ -83,6 +83,8 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--bar);outline-of
 .inline input{flex:1 1 auto}
 .btn{font:inherit;font-weight:700;white-space:nowrap;flex:none;border:0;border-radius:9px;padding:10px 18px;background:var(--accent);color:var(--on-accent);cursor:pointer}
 .btn.sub{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
+.crowd{display:flex;gap:8px}.crowd .btn{flex:1 1 0;margin:0;padding:12px 6px}
+.crowd .btn.sub{font-weight:700}
 .btn.wide{display:block;width:100%;margin-top:12px;padding:12px}
 .btn:disabled{opacity:.5;cursor:default}
 .msg{font-size:13px;color:var(--muted);min-height:1.4em;margin:6px 0 0}
@@ -401,14 +403,21 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
   <section id="v-setup" class="stack" hidden>
     <div class="card">
       <p class="t" id="su-lead" style="margin:0 0 4px">あなたに合わせて、違う所だけ直してください。</p>
+      <label class="f" style="margin-top:8px">働き方</label>
+      <div class="chkrow">
+        <label class="chk"><input type="checkbox" id="su-hojin" checked><span>法人タクシー<small>会社の乗務員</small></span></label>
+        <label class="chk"><input type="checkbox" id="su-kojin"><span>個人タクシー</span></label>
+      </div>
       <label class="f" for="su-pref" style="margin-top:8px">営業する都道府県</label>
       <select id="su-pref"></select>
+      <div id="su-contract-wrap">
       <label class="f">雇用形態</label>
       <div class="chkrow">
         <label class="chk"><input type="checkbox" id="su-sei" checked><span>正社員</span></label>
         <label class="chk"><input type="checkbox" id="su-sho"><span>嘱託</span></label>
       </div>
       <p class="t" style="margin:2px 0 0">嘱託は、月間の平均には入りません（日別の平均とランキングには入ります）</p>
+      </div>
       <label class="f">勤務</label>
       <div class="chkrow">
         <label class="chk"><input type="checkbox" id="su-day" checked><span>昼勤</span></label>
@@ -429,8 +438,10 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
         <label class="f" for="su-nick">ランキングでの呼び名（ほかの人に見える名前）</label>
         <input type="text" id="su-nick" autocomplete="off" maxlength="20">
       </div>
+      <div id="su-rate-wrap">
       <label class="f" for="su-rate">歩合の割合（売上 × この数字）</label>
       <input type="text" id="su-rate" inputmode="decimal" autocomplete="off">
+      </div>
       <label class="f" for="su-hours">1日の乗務時間（時間）</label>
       <input type="text" id="su-hours" inputmode="decimal" autocomplete="off">
       <label class="f" for="su-close">締め日（日。この日の次の日から次の月度）</label>
@@ -638,6 +649,11 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
       <div class="okwrap" id="pp-okwrap">
         <label class="okbig box"><input type="checkbox" id="pp-ok"><span>写真の日報と同じです</span></label>
       </div>
+      <div class="card" id="pp-crowdcard">
+        <span class="f-like" style="display:block;margin:0 0 6px">この日の街の人の多さ</span>
+        <div class="crowd" id="pp-crowd" role="group" aria-label="この日の街の人の多さ"><button type="button" class="btn sub" data-v="多い" aria-pressed="false">多い</button><button type="button" class="btn sub" data-v="普通" aria-pressed="false">普通</button><button type="button" class="btn sub" data-v="少ない" aria-pressed="false">少ない</button></div>
+        <p class="t" style="margin:6px 0 0">選ばなくても送れます。もう一度押すと消えます。</p>
+      </div>
       <p class="t" id="pp-fixnote" hidden style="margin:0">売上などが違う時は、写真を送り直してください。</p>
       <div class="card" id="pp-appcard" hidden>
         <h2 style="font-size:14px">アプリ別の売上・件数</h2>
@@ -688,6 +704,9 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
       <label class="f" for="rp-long">ロング：金額・乗車地 → 降車地（1回の乗車で一番高かった運賃。空でもよい）</label>
       <input type="text" id="rp-long" inputmode="numeric" autocomplete="off" placeholder="金額（円）">
       <div class="grid2" style="margin-top:8px"><input type="text" id="rp-from" autocomplete="off" maxlength="30" placeholder="乗車地 例 北区" aria-label="乗車地"><input type="text" id="rp-to" autocomplete="off" maxlength="30" placeholder="降車地 例 向日市" aria-label="降車地"></div>
+      <span class="f-like" style="display:block;margin:14px 0 6px">この日の街の人の多さ</span>
+      <div class="crowd" id="rp-crowd" role="group" aria-label="この日の街の人の多さ"><button type="button" class="btn sub" data-v="多い" aria-pressed="false">多い</button><button type="button" class="btn sub" data-v="普通" aria-pressed="false">普通</button><button type="button" class="btn sub" data-v="少ない" aria-pressed="false">少ない</button></div>
+      <p class="t" style="margin:6px 0 0">選ばなくても保存できます。もう一度押すと消えます。</p>
       <p class="msg" id="rp-msg" role="status"></p>
       <div class="confirm" id="rp-confirm" hidden>
         <b id="rp-confirm-t"></b>
@@ -1495,7 +1514,7 @@ var Calc=(function(){
       var iso=Calc.addDays(t.start,i),rec=byDate[iso],tr=document.createElement('tr');
       if(!rec)tr.className='off';
       else{tr.className='tap';tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',dlabel2(iso)+' の日報を直す');
-        (function(r){var go=function(){RP.held=false;RP.thumb='';if(!r.manual){openApps(r,'records');return}RP.mode='edit';fillCheck({date:r.date,sales:r.sales,rides:r.rides,minutes:r.minutes,longFare:r.longFare,longFrom:r.longFrom,longTo:r.longTo,appUber:r.appUber,appGo:r.appGo,appDidi:r.appDidi,appOther:r.appOther,appTax:r.appTax,cntUber:r.cntUber,cntGo:r.cntGo,cntDidi:r.cntDidi,cntOther:r.cntOther,night:false},'',[],'edit');show('report')};
+        (function(r){var go=function(){RP.held=false;RP.thumb='';if(!r.manual){openApps(r,'records');return}RP.mode='edit';fillCheck({crowd:r.crowd,date:r.date,sales:r.sales,rides:r.rides,minutes:r.minutes,longFare:r.longFare,longFrom:r.longFrom,longTo:r.longTo,appUber:r.appUber,appGo:r.appGo,appDidi:r.appDidi,appOther:r.appOther,appTax:r.appTax,cntUber:r.cntUber,cntGo:r.cntGo,cntDidi:r.cntDidi,cntOther:r.cntOther,night:false},'',[],'edit');show('report')};
           tr.addEventListener('click',go);tr.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})})(rec)}
       var c0=document.createElement('td');c0.textContent=dlabel2(iso);if(Calc.dow(iso)===0||isHolidayJP(iso))c0.className='sun';else if(Calc.dow(iso)===6)c0.className='sat'; /* 土曜は青、日曜・祝日は赤（2026-11-18 本人） */tr.appendChild(c0);
       var c1=document.createElement('td');c1.textContent=rec?rec.sales.toLocaleString('ja-JP'):'—';tr.appendChild(c1);
@@ -1770,7 +1789,7 @@ var Calc=(function(){
     var me=S.me,acc=Calc.tabAccess(me);
     $('my-fix').hidden=!(me.appSales&&S.reports.length);
     $('my-name').innerHTML=esc(me.name);
-    $('my-line').textContent=[me.pref,me.shift,me.contract,me.reportType,me.rankJoin&&acc.canJoin?'ランキングに参加':'ランキングに参加していません'].join('・');
+    $('my-line').textContent=[me.pref,me.shift,me.kind==='個人タクシー'?'個人タクシー':me.contract,me.reportType,me.rankJoin&&acc.canJoin?'ランキングに参加':'ランキングに参加していません'].join('・');
     var st=Calc.myStats(S.reports,me.closeDay,todayIso());
     $('my-days').textContent=st.sentDays+'日';
     var rows=[['1日の売上',st.bestSales,function(b){return yen(b.value)}],['1日の時間平均単価',st.bestHour,function(b){return yen(b.value)}],['1日の営業回数',st.bestRides,function(b){return b.value+'回'}],
@@ -1802,6 +1821,10 @@ var Calc=(function(){
 
   // ===== 設定 =====
   // 日報の種類：手書き日報なら、参加のチェックと呼び名の欄を出さない
+  function applyKind(){
+    var kojin=$('su-kojin').checked;
+    $('su-contract-wrap').hidden=kojin;$('su-rate-wrap').hidden=kojin; // 個人タクシーは、雇用形態と歩合の割合を使わない（2026-11-24 本人）
+  }
   function applyType(){
     var hand=$('su-hand').checked;
     $('su-join-wrap').hidden=hand;$('su-handnote').hidden=!hand;
@@ -1832,6 +1855,7 @@ var Calc=(function(){
     var m=S.me;
     $('su-pref').value=m.pref||'大阪府';
     $('su-sei').checked=m.contract!=='嘱託';$('su-sho').checked=m.contract==='嘱託';
+    $('su-hojin').checked=m.kind!=='個人タクシー';$('su-kojin').checked=m.kind==='個人タクシー';applyKind();
     $('su-day').checked=m.shift!=='夜勤'&&m.shift!=='隔日勤務';$('su-night').checked=m.shift==='夜勤';$('su-kaku').checked=m.shift==='隔日勤務';
     $('su-name').value=m.configured?(m.name||''):''; /* はじめの設定では空にする（作り手が付けた名前のメモをニックネームにしない。2026-11-20） */
     $('su-auto').checked=m.reportType!=='手書き日報';$('su-hand').checked=m.reportType==='手書き日報';
@@ -1874,6 +1898,7 @@ var Calc=(function(){
     setupSkins();
     fillPrefs($('su-pref'),false);
     exclusive('su-sei','su-sho');
+    exclusive('su-hojin','su-kojin');$('su-hojin').addEventListener('change',applyKind);$('su-kojin').addEventListener('change',applyKind);
     exclusive3(['su-day','su-night','su-kaku']);exclusive('su-mode-days','su-mode-hours');
     exclusive('su-auto','su-hand');
     $('su-auto').addEventListener('change',applyType);$('su-hand').addEventListener('change',applyType);
@@ -1884,7 +1909,8 @@ var Calc=(function(){
       var hand=$('su-hand').checked;
       clearFieldErr();
       var name=$('su-name').value.trim(),join=!hand&&$('su-join').checked,nick=name;
-      var rate=toNum($('su-rate').value),hours=toNum($('su-hours').value),close=toNum($('su-close').value),plan=toNum($('su-plan').value),limit=toNum($('su-limit').value);
+      var kojin=$('su-kojin').checked;
+      var rate=kojin?1:toNum($('su-rate').value),hours=toNum($('su-hours').value),close=toNum($('su-close').value),plan=toNum($('su-plan').value),limit=toNum($('su-limit').value);
       if(!name)return err('ニックネームを入れてください。','su-name');
       
       if(rate==null||isNaN(rate)||rate<=0||rate>1)return err('歩合の割合は、0より大きく1までの数字で入れてください（例 0.6）。','su-rate');
@@ -1892,7 +1918,7 @@ var Calc=(function(){
       if(close==null||isNaN(close)||close<1||close>31||Math.floor(close)!==close)return err('締め日は、1〜31の整数で入れてください（例 15）。','su-close');
       if(plan==null||isNaN(plan)||plan<0||plan>31||Math.floor(plan)!==plan)return err('今月の出勤予定日数は、0〜31の整数で入れてください。','su-plan');
       if(limit==null||isNaN(limit)||limit<1||limit>744)return err('月の乗務時間の上限は、1〜744の数字で入れてください（例 288）。','su-limit');
-      var me={contract:$('su-sho').checked?'嘱託':'正社員',pref:$('su-pref').value||'大阪府',shift:$('su-night').checked?'夜勤':$('su-kaku').checked?'隔日勤務':'昼勤',name:name,reportType:hand?'手書き日報':'自動日報',rankJoin:join,nick:nick,rate:rate,dayHours:hours,closeDay:close,weekStart:Number($('su-week').value),appSales:$('su-apps').checked,mode:$('su-mode-hours').checked?'hours':'days',limitHours:limit,configured:true};
+      var me={kind:kojin?'個人タクシー':'法人タクシー',contract:!kojin&&$('su-sho').checked?'嘱託':'正社員',pref:$('su-pref').value||'大阪府',shift:$('su-night').checked?'夜勤':$('su-kaku').checked?'隔日勤務':'昼勤',name:name,reportType:hand?'手書き日報':'自動日報',rankJoin:join,nick:nick,rate:rate,dayHours:hours,closeDay:close,weekStart:Number($('su-week').value),appSales:$('su-apps').checked,mode:$('su-mode-hours').checked?'hours':'days',limitHours:limit,configured:true};
       setMsg($('su-msg'),'保存しています');$('su-go').disabled=true;
       api('saveSettings',{settings:me}).then(function(){
         Object.assign(S.me,me);
@@ -1912,6 +1938,14 @@ var Calc=(function(){
 
   // ===== 日報を送る =====
   var RP={thumb:'',saving:false};
+  // この日の街の人の多さ（多い・普通・少ない。もう一度押すと消える。2026-11-24 本人）
+  function setCrowd(pre,v){
+    RP['crowd_'+pre]=v||'';
+    Array.prototype.forEach.call($(pre+'-crowd').children,function(b){var on=b.getAttribute('data-v')===RP['crowd_'+pre];b.classList.toggle('sub',!on);b.setAttribute('aria-pressed',on?'true':'false')});
+  }
+  function setupCrowd(pre){
+    Array.prototype.forEach.call($(pre+'-crowd').children,function(b){b.addEventListener('click',function(){var v=b.getAttribute('data-v');setCrowd(pre,RP['crowd_'+pre]===v?'':v)})});
+  }
   function rpStage(s){$('rp-pick').hidden=s!=='pick';$('rp-wait').hidden=s!=='wait';$('rp-check').hidden=s!=='check';$('rp-photo').hidden=s!=='photo';$('rp-rescue').hidden=s!=='rescue'}
   // アプリ別の売上（円）・件数（件）の欄。p は欄の名前の頭（rp＝手で入れる画面、pp＝写真の画面）
   var APPK=[['uber','Uber','appUber','cntUber'],['go','GO','appGo','cntGo'],['didi','DiDi','appDidi','cntDidi'],['other','配車その他','appOther','cntOther']];
@@ -1951,6 +1985,7 @@ var Calc=(function(){
     var wb=$('pp-warn');wb.hidden=!(warns&&warns.length);wb.innerHTML=(warns||[]).map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
     $('pp-okwrap').hidden=apps;$('pp-ok').checked=false;$('pp-retakewrap').hidden=apps;$('pp-retakeask').hidden=true;
     $('pp-second').hidden=apps;$('pp-add2pick').hidden=true;
+    $('pp-crowdcard').hidden=apps;if(!apps)setCrowd('pp',RP.crowd_pp);
     $('pp-add2note').hidden=!RP.img2;$('pp-add2').textContent=RP.img2?'2枚目を撮り直す':'2枚目（営業の続き）を足す';
     $('pp-fixnote').hidden=!apps||!!r.manual;
     var hasApps=!!S.me.appSales;
@@ -2014,6 +2049,7 @@ var Calc=(function(){
     $('rp-long').value=r.longFare>0?Number(r.longFare).toLocaleString('ja-JP'):'';$('rp-from').value=r.longFrom||'';$('rp-to').value=r.longTo||'';
     $('rp-apps').hidden=!S.me.appSales;$('rp-manualnote').hidden=false;
     writeApps('rp',r);
+    setCrowd('rp',r.crowd||'');
     $('rp-night').hidden=!r.night;
     var w=(warns||[]).slice();if(note)w.push('読み取りの時のメモ：'+note);
     var wb=$('rp-warn');wb.hidden=!w.length;wb.innerHTML=w.map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
@@ -2024,7 +2060,7 @@ var Calc=(function(){
   function onPhoto(file){
     if(!file)return;
     setMsg($('rp-pickmsg'),'');
-    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';RP.held=true;RP.mode='photo';
+    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';RP.held=true;RP.mode='photo';RP.crowd_pp='';
     shrink(file).then(function(dataUrl){
       RP.thumb=dataUrl;RP.img1=dataUrl.split(',')[1];RP.img2=null;
       $('rp-waittext').textContent='写真を読み取っています（10秒ほどかかります）';
@@ -2079,7 +2115,7 @@ var Calc=(function(){
     if(minutes<=0)return {err:'乗務時間が0です。入れ直してください。',id:'rp-time'};
     var ap=S.me.appSales?readApps('rp'):{apps:{}};
     if(ap.err)return ap;
-    var rep0={date:date,sales:Math.round(sales),rides:rides,minutes:minutes,longFare:lf?Math.round(lf):null,longFrom:$('rp-from').value.trim().slice(0,30),longTo:$('rp-to').value.trim().slice(0,30)};
+    var rep0={date:date,sales:Math.round(sales),rides:rides,minutes:minutes,longFare:lf?Math.round(lf):null,longFrom:$('rp-from').value.trim().slice(0,30),longTo:$('rp-to').value.trim().slice(0,30),crowd:RP.crowd_rp||''};
     Object.keys(ap.apps).forEach(function(k){rep0[k]=ap.apps[k]});
     return {report:rep0};
   }
@@ -2121,6 +2157,7 @@ var Calc=(function(){
     $('in-file2').addEventListener('change',function(){onSecondPhoto(this.files[0]);this.value=''});
     $('rp-hand').addEventListener('click',function(){RP.thumb='';RP.mode='hand';fillCheck({date:todayIso(),sales:null,rides:null,minutes:0,night:false},'',[],'hand')});
     buildApps($('rp-appgrid'),'rp');buildApps($('pp-apps'),'pp');
+    setupCrowd('pp');setupCrowd('rp');
     $('pp-ok').addEventListener('change',function(){$('pp-send').disabled=!$('pp-ok').checked;$('pp-hint').hidden=$('pp-ok').checked});
     $('pp-retake').addEventListener('click',function(){$('pp-retakeask').hidden=false;$('pp-retakeask').scrollIntoView({block:'center'})});
     $('pp-retakeno').addEventListener('click',function(){$('pp-retakeask').hidden=true});
@@ -2141,7 +2178,7 @@ var Calc=(function(){
         },function(e){done();setMsg($('pp-msg'),e.message,true)});
         return;
       }
-      api('submitReport',{ticket:RP.ticket,overwrite:!!overwrite,apps:a.apps}).then(function(j){
+      api('submitReport',{ticket:RP.ticket,overwrite:!!overwrite,apps:a.apps,crowd:RP.crowd_pp||''}).then(function(j){
         if(j.status==='conflict'){
           done();setMsg($('pp-msg'),'');
           var e=j.existing;
@@ -2230,7 +2267,7 @@ var Calc=(function(){
 
   // ===== 見本（?demo=1）：裏を呼ばずに、見本のデータで全部の画面を動かす =====
   var Demo=(function(){
-    var me={reportType:'自動日報',contract:'正社員',appSales:false,pref:'大阪府',shift:'',name:'',rankJoin:false,nick:'',rate:0.6,dayHours:12.5,closeDay:15,weekStart:3,mode:'days',limitHours:288,configured:false};
+    var me={kind:'法人タクシー',reportType:'自動日報',contract:'正社員',appSales:false,pref:'大阪府',shift:'',name:'',rankJoin:false,nick:'',rate:0.6,dayHours:12.5,closeDay:15,weekStart:3,mode:'days',limitHours:288,configured:false};
     var terms={},today=null,reports=[],tickets={},tkn=0;
     var PL_FROM=['大阪府北区','大阪府中央区','大阪府浪速区','大阪府天王寺区'];
     var PL_TO=['京都府向日市','大阪府泉佐野市','大阪府吹田市','大阪府堺市','大阪府守口市','兵庫県西宮市'];
@@ -2294,7 +2331,7 @@ var Calc=(function(){
         // 写真の日報：保存するのは、読み取りの結果（番号で引く）だけ。画面から来た売上などは使わない
         var tk=tickets[d.ticket];
         if(!tk)return Promise.reject(Object.assign(new Error('読み取りの結果が古くなりました。もう一度写真を送ってください。'),{code:'ticket'}));
-        var rp=Calc.reportFromTicket(tk,d.apps),k=reports.findIndex(function(x){return x.date===rp.date});
+        var rp=Calc.reportFromTicket(tk,d.apps),k=reports.findIndex(function(x){return x.date===rp.date});rp.crowd=d.crowd||'';
         if(k>=0&&!d.overwrite)return delay({ok:true,status:'conflict',existing:copy(reports[k]),report:copy(rp)});
         var stamp=Calc.jstStamp(Date.now()),ru=Calc.rankUpdate(k>=0?reports[k]:null,rp,stamp,rp.date);
         rp.sentAt=stamp;rp.rankIn=ru.inRank;rp.rank=ru.rank; // 順位に使う数字は、日報とは別に持つ
