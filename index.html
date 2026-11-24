@@ -219,6 +219,7 @@ table.mtable{font-size:11px}
 .tabbar button.tb{flex:1;font:inherit;font-size:12px;border:0;background:transparent;color:var(--muted);padding:6px 0;cursor:pointer}
 .tabbar button.tb svg{display:block;width:22px;height:22px;margin:0 auto 2px}
 .tabbar button.tb[aria-current="true"]{color:var(--accent);font-weight:700}
+.cam svg{display:block;width:30px;height:30px;margin:0 auto}
 .cam{flex:none;width:62px;height:62px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);font:inherit;font-weight:800;font-size:12px;line-height:1.25;margin-top:-30px;box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer}
 .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);border-radius:10px;padding:9px 16px;font-size:14px;max-width:90vw;z-index:9;text-align:center}
 .thumb{display:block;max-width:100%;max-height:150px;border-radius:8px;border:1px solid var(--line);margin:0 auto 6px}
@@ -764,8 +765,9 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
 </div>
 
 <nav class="tabbar" id="bar" aria-label="いつもの操作" hidden>
-  <button type="button" class="tb" id="b-home" aria-current="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>ホーム</button>
-  <button type="button" class="cam" id="b-send">日報を<br>送る</button>
+  <!-- 左が日報を送る、真ん中の丸がホーム（家の形）。2026-11-25 本人 -->
+  <button type="button" class="tb" id="b-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg>日報を送る</button>
+  <button type="button" class="cam" id="b-home" aria-current="true" aria-label="ホーム"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg></button>
   <button type="button" class="tb" id="b-set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>マイページ</button>
 </nav>
 <div class="toast" id="toast" role="status" hidden></div>
