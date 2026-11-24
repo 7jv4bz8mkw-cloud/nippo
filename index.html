@@ -93,6 +93,12 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--bar);outline-of
 #pp-meisai{margin-top:10px}
 #pp-meisai .chk{display:block;font-size:13px;margin-top:2px;font-weight:500}
 #pp-meisai .ok{color:var(--good)} #pp-meisai .ng{color:var(--bad)}
+#pp-mlist{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+#pp-mlist table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+#pp-mlist th,#pp-mlist td{text-align:left;padding:7px 4px;border-top:1px solid var(--line);vertical-align:top}
+#pp-mlist th{border-top:0;color:var(--muted);font-size:11px;font-weight:600}
+#pp-mlist .n,#pp-mlist .tm{white-space:nowrap}#pp-mlist .yen{text-align:right;white-space:nowrap}
+#pp-mlist .pl{white-space:normal;overflow-wrap:anywhere;width:100%}
 .crowd{display:flex;gap:8px}.crowd .btn{flex:1 1 0;margin:0;padding:12px 6px}
 .crowd .btn.sub{font-weight:700}
 .btn.wide{display:block;width:100%;margin-top:12px;padding:12px}
@@ -265,6 +271,8 @@ table.mtable{font-size:11px}
 .okbig input{appearance:none;-webkit-appearance:none;flex:none;width:28px;height:28px;margin:0;border:3px solid var(--accent);border-radius:7px;background:var(--panel);display:grid;place-items:center;cursor:pointer}
 .okbig input:checked{background:var(--accent)}
 .okbig input:checked::after{content:"✓";color:var(--on-accent);font-size:20px;line-height:1;font-weight:800}
+.topback{font:inherit;font-size:15px;font-weight:700;padding:6px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg);cursor:pointer}
+.topback:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .linkbtn{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;padding:8px 0 0;cursor:pointer;text-align:left}
 .appcell{display:grid;gap:6px;min-width:0}
 .appcell input{font-size:15px;padding:7px 8px}
@@ -639,6 +647,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
 
   <!-- 日報を送る -->
   <section id="v-report" class="stack" hidden>
+    <div><button type="button" class="topback" id="rp-back" hidden>‹ 戻る</button></div>
     <div class="old-note" id="rp-oldnote">2026年11月15日以前の日報の写真は、送らないでください。その日報を入れたい時は、「写真を使わずに、手で入れる」から入れてください。</div>
     <div class="card" id="rp-pick">
       <h2 id="rp-h">日報の写真を送る</h2>
@@ -663,6 +672,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
         <div class="warn" id="pp-warn" hidden></div>
         <div id="pp-ro"></div>
         <div id="pp-meisai" hidden></div>
+        <div id="pp-mlist" hidden></div>
       </div>
       <div class="card" id="pp-second" hidden>
         <p class="t" id="pp-add2note" hidden style="margin:0 0 6px;font-weight:700;color:var(--good)">2枚目を足しました</p>
@@ -2033,7 +2043,9 @@ var Calc=(function(){
   function setupCrowd(pre){
     Array.prototype.forEach.call($(pre+'-crowd').children,function(b){b.addEventListener('click',function(){var v=b.getAttribute('data-v');setCrowd(pre,RP['crowd_'+pre]===v?'':v)})});
   }
-  function rpStage(s){$('rp-pick').hidden=s!=='pick';$('rp-wait').hidden=s!=='wait';$('rp-check').hidden=s!=='check';$('rp-photo').hidden=s!=='photo';$('rp-rescue').hidden=s!=='rescue'}
+  // 記録から開いた日の画面（写真の日報＝apps、手で入れた日報＝edit）だけ、左上に「戻る」を出す（2026-11-24 本人）
+  function rpBackShow(s){$('rp-back').hidden=!((s==='photo'&&RP.mode==='apps')||(s==='check'&&RP.edit))}
+  function rpStage(s){rpBackShow(s);$('rp-pick').hidden=s!=='pick';$('rp-wait').hidden=s!=='wait';$('rp-check').hidden=s!=='check';$('rp-photo').hidden=s!=='photo';$('rp-rescue').hidden=s!=='rescue'}
   // アプリ別の売上（円）・件数（件）の欄。p は欄の名前の頭（rp＝手で入れる画面、pp＝写真の画面）
   var APPK=[['uber','Uber','appUber','cntUber'],['go','GO','appGo','cntGo'],['didi','DiDi','appDidi','cntDidi'],['other','配車その他','appOther','cntOther']];
   function buildApps(el,p){
@@ -2071,7 +2083,7 @@ var Calc=(function(){
     var box=$('pp-meisai');
     if(RP.mode!=='photo'||!RP.rows||!RP.rows.length){box.hidden=true;box.replaceChildren();return}
     var c=meisaiCheck(RP.rows,RP.inTax,RP.cur?RP.cur.rides:null),h='';
-    h+='<div class="ro"><span>全乗車明細</span><b>乗車 '+c.rides+'回・休憩 '+c.rest+'回</b></div>';
+    h+='<div class="ro"><span>全乗車明細</span><b>乗車 '+c.rides+'回</b></div>'; // 休憩は出さない（2026-11-24 本人）
     // 金額の照らし合わせはしない：売上は1枚目の総営収が全て。備考の記号（GO配車の手配料など）は会社ごとに違う（2026-11-24 本人）
     if(c.okCount)h+='<span class="chk ok">✓ 乗車の回数 '+c.rides+' ＝ 営業回数</span>';
     else if(c.short)h+='<span class="chk ng">明細は '+c.rides+'回分しか読めていません（営業回数は '+c.expect+'回）。日報が2枚の日は、下の「2枚目（営業の続き）を足す」で残りの明細も読めます。</span>';
@@ -2079,13 +2091,22 @@ var Calc=(function(){
     h+='<span class="chk" style="color:var(--muted)">明細は、送信した時にこの電話の中にだけ残します。合わない時も送信はできます。</span>';
     box.innerHTML=h;box.hidden=false;
   }
+  // 記録から開いた日の画面に、電話の中にある明細（乗車の行だけ）を出す。休憩・出庫・入庫は出さない（2026-11-24 本人）
+  function loadMeisai(date){try{var o=JSON.parse(localStorage.getItem('nippo_meisai_'+date)||'null');return o&&Array.isArray(o.rows)?o.rows:null}catch(e){return null}}
+  function renderMeisaiList(date){
+    var box=$('pp-mlist'),rows=date?loadMeisai(date):null,rr=rows?rows.filter(function(x){return x.kind==='乗車'}):[];
+    if(!rr.length){box.hidden=true;box.replaceChildren();return}
+    var h='<b>全乗車明細</b><div class="t">乗車 '+rr.length+'回（この電話の中にある明細）</div><table><thead><tr><th>No.</th><th>時刻</th><th>乗車地 → 降車地</th><th class="yen">金額</th></tr></thead><tbody>';
+    rr.forEach(function(x){h+='<tr><td class="n">'+esc(String(x.no||''))+'</td><td class="tm">'+esc(x.board||'')+(x.alight?'〜'+esc(x.alight):'')+'</td><td class="pl">'+esc(x.from||'')+(x.to?' → '+esc(x.to):'')+'</td><td class="yen">'+(Number(x.fare)>0?Number(x.fare).toLocaleString('ja-JP')+'円':'')+'</td></tr>'});
+    box.innerHTML=h+'</tbody></table>';box.hidden=false;
+  }
   function saveMeisai(date,rows){try{localStorage.setItem('nippo_meisai_'+date,JSON.stringify({v:1,savedAt:Date.now(),rows:rows}))}catch(e){}}
   function showPhoto(mode,r,warns){
     RP.mode=mode;
     var apps=mode==='apps',lg=r.longFare>0;
     $('pp-title').textContent=apps?dlabel(r.date)+' の日報：アプリ別の売上・件数':'読み取った数字が合っているか確かめてください';
     var rows=[['出庫日',dlabel(r.date)],['税抜売上',yen(r.sales)],['営業回数',r.rides+'回'],['乗務時間',hmShort(r.minutes)],['ロング（1回の乗車で一番高かった運賃）',lg?yen(r.longFare)+(r.longFrom||r.longTo?'<small>'+esc(r.longFrom)+' → '+esc(r.longTo)+'</small>':''):'なし']];
-    setTimeout(renderMeisai,0);
+    setTimeout(renderMeisai,0);renderMeisaiList(apps?r.date:null);
     $('pp-ro').innerHTML=rows.map(function(x){return '<div class="ro"><span>'+x[0]+'</span><b>'+(x[0].indexOf('ロング')===0&&lg?x[1]:esc(x[1]))+'</b></div>'}).join('');
     var th=$('pp-thumb');if(!apps&&RP.thumb){th.src=RP.thumb;th.hidden=false}else{th.removeAttribute('src');th.hidden=true}
     var wb=$('pp-warn');wb.hidden=!(warns&&warns.length);wb.innerHTML=(warns||[]).map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
@@ -2263,6 +2284,7 @@ var Calc=(function(){
     $('in-file2').addEventListener('change',function(){onSecondPhoto(this.files[0]);this.value=''});
     $('rp-hand').addEventListener('click',function(){RP.thumb='';RP.mode='hand';fillCheck({date:todayIso(),sales:null,rides:null,minutes:0,night:false},'',[],'hand')});
     buildApps($('rp-appgrid'),'rp');buildApps($('pp-apps'),'pp');
+    $('rp-back').addEventListener('click',function(){if(RP.mode==='apps'){show(RP.backTo||'records')}else{show('records')}window.scrollTo(0,0)});
     setupCrowd('pp');setupCrowd('rp');
     $('pp-ok').addEventListener('change',function(){$('pp-send').disabled=!$('pp-ok').checked;$('pp-hint').hidden=$('pp-ok').checked});
     $('pp-retake').addEventListener('click',function(){$('pp-retakeask').hidden=false;$('pp-retakeask').scrollIntoView({block:'center'})});
