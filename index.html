@@ -84,6 +84,9 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--bar);outline-of
 .btn{font:inherit;font-weight:700;white-space:nowrap;flex:none;border:0;border-radius:9px;padding:10px 18px;background:var(--accent);color:var(--on-accent);cursor:pointer}
 .btn.sub{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
 .crowdc{text-align:center;white-space:nowrap}
+#pp-meisai{margin-top:10px}
+#pp-meisai .chk{display:block;font-size:13px;margin-top:2px;font-weight:500}
+#pp-meisai .ok{color:var(--good)} #pp-meisai .ng{color:var(--bad)}
 .crowd{display:flex;gap:8px}.crowd .btn{flex:1 1 0;margin:0;padding:12px 6px}
 .crowd .btn.sub{font-weight:700}
 .btn.wide{display:block;width:100%;margin-top:12px;padding:12px}
@@ -639,6 +642,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
         <img class="thumb" id="pp-thumb" alt="送った写真" hidden>
         <div class="warn" id="pp-warn" hidden></div>
         <div id="pp-ro"></div>
+        <div id="pp-meisai" hidden></div>
       </div>
       <div class="card" id="pp-second" hidden>
         <p class="t" id="pp-add2note" hidden style="margin:0 0 6px;font-weight:700;color:var(--good)">2枚目を足しました</p>
@@ -1995,11 +1999,30 @@ var Calc=(function(){
     return {apps:out};
   }
   // 写真を送ったあと（photo）と、記録・あとから直す入口から開いた時（apps）の画面。数字は変えられない表示
+  // 全乗車明細（今は作り手だけ。裏が返した時だけ出す）。確かめるのは「乗車の行の数＝営業回数」だけ（2枚目の送り忘れに気付くため。2026-11-24 本人）
+  function meisaiCheck(rows,inTax,rides){
+    var rr=rows.filter(function(x){return x.kind==='乗車'}),rest=rows.filter(function(x){return x.kind==='休憩'}).length;
+    return {rides:rr.length,rest:rest,okCount:rides!=null&&rr.length===rides,short:rides!=null&&rr.length<rides,expect:rides};
+  }
+  function renderMeisai(){
+    var box=$('pp-meisai');
+    if(RP.mode!=='photo'||!RP.rows||!RP.rows.length){box.hidden=true;box.replaceChildren();return}
+    var c=meisaiCheck(RP.rows,RP.inTax,RP.cur?RP.cur.rides:null),h='';
+    h+='<div class="ro"><span>全乗車明細</span><b>乗車 '+c.rides+'回・休憩 '+c.rest+'回</b></div>';
+    // 金額の照らし合わせはしない：売上は1枚目の総営収が全て。備考の記号（GO配車の手配料など）は会社ごとに違う（2026-11-24 本人）
+    if(c.okCount)h+='<span class="chk ok">✓ 乗車の回数 '+c.rides+' ＝ 営業回数</span>';
+    else if(c.short)h+='<span class="chk ng">明細は '+c.rides+'回分しか読めていません（営業回数は '+c.expect+'回）。日報が2枚の日は、下の「2枚目（営業の続き）を足す」で残りの明細も読めます。</span>';
+    else h+='<span class="chk ng">明細の乗車は '+c.rides+'回で、営業回数（'+c.expect+'回）と合いません。</span>';
+    h+='<span class="chk" style="color:var(--muted)">明細は、送信した時にこの電話の中にだけ残します。合わない時も送信はできます。</span>';
+    box.innerHTML=h;box.hidden=false;
+  }
+  function saveMeisai(date,rows){try{localStorage.setItem('nippo_meisai_'+date,JSON.stringify({v:1,savedAt:Date.now(),rows:rows}))}catch(e){}}
   function showPhoto(mode,r,warns){
     RP.mode=mode;
     var apps=mode==='apps',lg=r.longFare>0;
     $('pp-title').textContent=apps?dlabel(r.date)+' の日報：アプリ別の売上・件数':'読み取った数字が合っているか確かめてください';
     var rows=[['出庫日',dlabel(r.date)],['税抜売上',yen(r.sales)],['営業回数',r.rides+'回'],['乗務時間',hmShort(r.minutes)],['ロング（1回の乗車で一番高かった運賃）',lg?yen(r.longFare)+(r.longFrom||r.longTo?'<small>'+esc(r.longFrom)+' → '+esc(r.longTo)+'</small>':''):'なし']];
+    setTimeout(renderMeisai,0);
     $('pp-ro').innerHTML=rows.map(function(x){return '<div class="ro"><span>'+x[0]+'</span><b>'+(x[0].indexOf('ロング')===0&&lg?x[1]:esc(x[1]))+'</b></div>'}).join('');
     var th=$('pp-thumb');if(!apps&&RP.thumb){th.src=RP.thumb;th.hidden=false}else{th.removeAttribute('src');th.hidden=true}
     var wb=$('pp-warn');wb.hidden=!(warns&&warns.length);wb.innerHTML=(warns||[]).map(function(x){return '<div>'+esc(x)+'</div>'}).join('');
@@ -2080,7 +2103,7 @@ var Calc=(function(){
   function onPhoto(file){
     if(!file)return;
     setMsg($('rp-pickmsg'),'');
-    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';RP.held=true;RP.mode='photo';RP.crowd_pp='';
+    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';RP.held=true;RP.mode='photo';RP.crowd_pp='';RP.rows=null;RP.inTax=null;
     shrink(file).then(function(dataUrl){
       RP.thumb=dataUrl;RP.img1=dataUrl.split(',')[1];RP.img2=null;
       $('rp-waittext').textContent='写真を読み取っています（10秒ほどかかります）';
@@ -2090,7 +2113,7 @@ var Calc=(function(){
       RP.ticket=j.ticket;
       var wl=(j.plan.warnings||[]).slice();if(j.plan.night)wl.push('夜中（6時より前）の出庫なので、前の日の日報にしています。');if(j.report.note)wl.push('読み取りの時のメモ：'+j.report.note);
       var r0={date:j.plan.date,sales:j.report.sales,rides:j.report.rides,minutes:j.report.minutes,longFare:j.report.longFare,longFrom:j.report.longFrom,longTo:j.report.longTo,manual:false};
-      RP.cur=r0;RP.curWarn=wl;
+      RP.cur=r0;RP.curWarn=wl;RP.rows=Array.isArray(j.report.rows)?j.report.rows:null;RP.inTax=j.report.salesInTax==null?null:Number(j.report.salesInTax);
       showPhoto('photo',r0,wl);
       var ex=S.reports.find(function(d){return d.date===r0.date});if(ex&&S.me.appSales)writeApps('pp',ex);
     },function(e){
@@ -2113,7 +2136,7 @@ var Calc=(function(){
       RP.img2=x.img2;RP.ticket=j.ticket;
       var wl=(j.plan.warnings||[]).slice();if(j.plan.night)wl.push('夜中（6時より前）の出庫なので、前の日の日報にしています。');if(j.report.note)wl.push('読み取りの時のメモ：'+j.report.note);
       var r0={date:j.plan.date,sales:j.report.sales,rides:j.report.rides,minutes:j.report.minutes,longFare:j.report.longFare,longFrom:j.report.longFrom,longTo:j.report.longTo,manual:false};
-      RP.cur=r0;RP.curWarn=wl;
+      RP.cur=r0;RP.curWarn=wl;RP.rows=Array.isArray(j.report.rows)?j.report.rows:null;RP.inTax=j.report.salesInTax==null?null:Number(j.report.salesInTax);
       showPhoto('photo',r0,wl);
       Object.keys(keep).forEach(function(id){$(id).value=keep[id]});
     },function(e){
@@ -2205,6 +2228,7 @@ var Calc=(function(){
           $('pp-confirm-t').textContent=dlabel(j.report.date)+' はもう入っています（売上 '+yen(e.sales)+'・'+(e.rides!=null?e.rides+'回・':'')+hmShort(e.minutes)+'）。新しい写真の数字で置き換えますか？';
           $('pp-confirm').hidden=false;$('pp-send').hidden=true;return;
         }
+        if(RP.rows&&j.report&&j.report.date)saveMeisai(j.report.date,RP.rows);
         RP.ticket='';done();finishSave(j.report);
       },function(e){
         done();
@@ -2342,6 +2366,19 @@ var Calc=(function(){
       if(me.rankJoin)reports.forEach(function(r){var e=Calc.rankEntry(r);if(!e)return;all.push({who:'me',nick:me.nick||me.name,pref:me.pref,shift:me.shift,manual:false,kt:me.contract==='嘱託',date:r.date,sales:e.sales,rides:e.rides,minutes:e.minutes,longFare:e.longFare,longFrom:e.longFrom,longTo:e.longTo,me:true})});
       return all;
     }
+    // 見本の全乗車明細（作った場所と金額。本物の日報ではない）。n回の乗車のうち2回はGO配車（手配料200円込み）
+    function demoRows(n,inTax){
+      var P=['北区梅田1','中央区難波3','西区北堀江2','北区天神橋5','浪速区元町1','天王寺区上本町6'],rows=[{kind:'出庫',no:0,board:'15:52',alight:'',pickup:false,from:'城東区今福東1',to:'',km:0,fare:0,cash:0,unpaid:0,mark:''}],tot=24,sum=0;
+      for(var i=1;i<=n;i++){
+        var g=(i===5||i===12),f=i===tot?0:1000+((i*370)%2400);
+        if(i===tot)f=inTax+400-sum;
+        if(i<tot)sum+=f;
+        var h=16+Math.floor(i*30/60),m=(i*30)%60,t=(h%24<10?'0':'')+(h%24)+':'+(m<10?'0':'')+m;
+        rows.push({kind:'乗車',no:i,board:t,alight:t,pickup:g,from:P[i%6],to:P[(i+2)%6],km:2.5,fare:f,cash:0,unpaid:f,mark:g?'G':'N'});
+        if(i%6===0)rows.push({kind:'休憩',no:0,board:t,alight:t,pickup:false,from:P[i%6],to:P[i%6],km:0,fare:0,cash:0,unpaid:0,mark:''});
+      }
+      return rows;
+    }
     function delay(v,ms){return new Promise(function(r){setTimeout(function(){r(v)},ms||120)})}
     function copy(o){return JSON.parse(JSON.stringify(o))}
     function call(a,d){
@@ -2384,7 +2421,7 @@ var Calc=(function(){
         // 2枚（営業の続きを足した時）は、2枚の乗車の一覧すべての中から一番高いロングを選ぶ見本：1枚目では 18,400円、2枚目に 29,800円がある
         var lf=two?{longFare:29800,longFrom:'大阪府中央区',longTo:'兵庫県神戸市'}:{longFare:18400,longFrom:'大阪府北区',longTo:'京都府向日市'};
         tickets[id]=Object.assign({date:n.iso,sales:61200,rides:24,minutes:731},lf);
-        return delay({ok:true,ticket:id,report:Object.assign({departure:n.iso+' 15:52',sales:61200,rides:24,minutes:731,note:''},lf),plan:{date:n.iso,night:false,warnings:[]}},700);
+        return delay({ok:true,ticket:id,report:Object.assign({departure:n.iso+' 15:52',sales:61200,salesInTax:67320,rides:24,minutes:731,note:'',rows:demoRows(two?24:18,67320)},lf),plan:{date:n.iso,night:false,warnings:[]}},700);
       }
       if(a==='ranking'){
         if(!Calc.tabAccess(me).rank)return Promise.reject(Object.assign(new Error('ランキングに参加していません。'),{code:'not_joined'}));
