@@ -97,7 +97,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--bar);outline-of
 #pp-mlist table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
 #pp-mlist th,#pp-mlist td{text-align:left;padding:7px 4px;border-top:1px solid var(--line);vertical-align:top}
 #pp-mlist th{border-top:0;color:var(--muted);font-size:11px;font-weight:600}
-#pp-mlist .n,#pp-mlist .tm{white-space:nowrap}#pp-mlist .yen{text-align:right;white-space:nowrap}
+#pp-mlist .n,#pp-mlist .tm,#pp-mlist .ap{white-space:nowrap}#pp-mlist .yen{text-align:right;white-space:nowrap}
 #pp-mlist .pl{white-space:normal;overflow-wrap:anywhere;width:100%}
 .crowd{display:flex;gap:8px}.crowd .btn{flex:1 1 0;margin:0;padding:12px 6px}
 .crowd .btn.sub{font-weight:700}
@@ -526,6 +526,12 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
         <div><span class="f-like">現時点の時間平均単価</span><div class="avgbox"><b class="num" id="td-avg">—</b><small>（税抜）</small></div></div>
       </div>
       <p class="msg" id="td-note" role="status"></p>
+      <div id="td-haisha" hidden style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+        <p class="t" style="margin:0 0 8px;font-weight:700;color:var(--fg)">アプリで配車を受けたら押す</p>
+        <div class="grid2" id="hs-btns"><button type="button" class="btn sub" data-app="go" style="padding:18px 6px;font-size:17px;font-weight:700">GO</button><button type="button" class="btn sub" data-app="uber" style="padding:18px 6px;font-size:17px;font-weight:700">Uber</button><button type="button" class="btn sub" data-app="didi" style="padding:18px 6px;font-size:17px;font-weight:700">DiDi</button><button type="button" class="btn sub" data-app="other" style="padding:18px 6px;font-size:17px;font-weight:700">その他アプリ</button></div>
+        <p class="msg" id="hs-msg" role="status" hidden style="margin:8px 0 0"><span id="hs-msgt"></span> <button type="button" class="mini" id="hs-undo" hidden>取り消す</button></p>
+        <p class="t" id="hs-sum" style="margin:8px 0 0"></p>
+      </div>
     </div>
     <div class="card" id="td-need-card">
       <div class="t">必要な1時間あたりの売上</div>
@@ -695,6 +701,7 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
       <div class="card" id="pp-appcard" hidden>
         <h2 style="font-size:14px">アプリ別の売上・件数</h2>
         <div class="t">どちらも入れなくても送信できます。</div>
+        <div class="t" id="pp-autonote" hidden style="color:var(--good);font-weight:700">配車ボタンと明細から入れました（手で直せます）</div>
         <div id="pp-apps" style="margin-top:8px"></div>
       </div>
       <p class="msg" id="pp-msg" role="status"></p>
@@ -1237,7 +1244,33 @@ var Calc=(function(){
     });
     return out;
   }
-  return {plausible:plausible,avgEntry:avgEntry,myStats:myStats,podiumCounts:podiumCounts,tabAccess:tabAccess,jstStamp:jstStamp,deadlineOf:deadlineOf,isLate:isLate,rankState:rankState,rankUpdate:rankUpdate,rankEntry:rankEntry,reportFromTicket:reportFromTicket,appTotals:appTotals,basisText:basisText,effectiveTarget:effectiveTarget,todayNeed:todayNeed,termList:termList,groupAvg:groupAvg,avgDaily:avgDaily,avgMonths:avgMonths,meDaily:meDaily,meMonths:meMonths,compareSummary:compareSummary,diffOf:diffOf,niceTicks:niceTicks,PREFS:PREFS,monthRank:monthRank,dailyRank:dailyRank,dateRange:dateRange,addDays:addDays,parseD:parseD,isoD:isoD,dow:dow,termOf:termOf,termById:termById,termFor:termFor,jstNow:jstNow,shiftMath:shiftMath,todayKey:todayKey,parseAmount:parseAmount,summary:summary,monthSum:monthSum,groupTerms:groupTerms,DAY:DAY};
+  // 配車ボタンと明細の合わせ方（2026-11-25 本人）。ボタンの記録は電話の中だけ。夜中（6時より前）に押した物は前の日の勤務として数える（裏の rowDateOf_ と同じ）
+  function haishaDay(ms){var n=jstNow(ms);return n.min<360?addDays(n.iso,-1):n.iso}
+  // 「HH:MM」を分にする。勤務日をまたいだ夜中（6時より前）は24時以降として比べる
+  function toMin(s){var m=/^(\d{1,2}):(\d{2})/.exec(String(s||''));if(!m)return null;var v=Number(m[1])*60+Number(m[2]);return Number(m[1])<6?v+1440:v}
+  // 押した順に古いものから、押した時刻以降で、まだアプリの付いていない最初の乗車の行に付ける。60分以内に迎車があればそちら。60分以内に乗車が無ければ使わない
+  function matchTaps(rows,taps,date){
+    var out=(rows||[]).map(function(x){var c={};for(var k in x)c[k]=x[k];return c}),rides=[];
+    out.forEach(function(x,i){if(x.kind!=='乗車')return;var b=toMin(x.board);if(b!=null)rides.push({x:x,b:b,i:i})});
+    rides.sort(function(a,b){return a.b-b.b||a.i-b.i});
+    var ts=(taps||[]).filter(function(p){return p&&typeof p.t==='number'&&/^(go|uber|didi|other)$/.test(p.app)}).sort(function(a,b){return a.t-b.t}),used=0;
+    ts.forEach(function(p){
+      var j=jstNow(p.t),m=j.min+(j.iso>date?1440:0),first=null,pick=null;
+      for(var k=0;k<rides.length;k++){
+        var r=rides[k];if(r.x.app||r.b<m)continue;if(r.b>m+60)break;
+        if(!first)first=r;if(r.x.pickup&&!pick)pick=r;
+      }
+      var g=pick||first;if(g){g.x.app=p.app;used++}
+    });
+    return {rows:out,used:used,taps:ts.length};
+  }
+  // 乗車の行をアプリごとに足す（金額は明細の税込の金額）。app の無い行は none
+  function tallyApps(rows){
+    var t={go:{n:0,yen:0},uber:{n:0,yen:0},didi:{n:0,yen:0},other:{n:0,yen:0},none:{n:0,yen:0}};
+    (rows||[]).forEach(function(x){if(x.kind!=='乗車')return;var k=t[x.app]?x.app:'none';t[k].n++;t[k].yen+=Number(x.fare)||0});
+    return t;
+  }
+  return {haishaDay:haishaDay,matchTaps:matchTaps,tallyApps:tallyApps,plausible:plausible,avgEntry:avgEntry,myStats:myStats,podiumCounts:podiumCounts,tabAccess:tabAccess,jstStamp:jstStamp,deadlineOf:deadlineOf,isLate:isLate,rankState:rankState,rankUpdate:rankUpdate,rankEntry:rankEntry,reportFromTicket:reportFromTicket,appTotals:appTotals,basisText:basisText,effectiveTarget:effectiveTarget,todayNeed:todayNeed,termList:termList,groupAvg:groupAvg,avgDaily:avgDaily,avgMonths:avgMonths,meDaily:meDaily,meMonths:meMonths,compareSummary:compareSummary,diffOf:diffOf,niceTicks:niceTicks,PREFS:PREFS,monthRank:monthRank,dailyRank:dailyRank,dateRange:dateRange,addDays:addDays,parseD:parseD,isoD:isoD,dow:dow,termOf:termOf,termById:termById,termFor:termFor,jstNow:jstNow,shiftMath:shiftMath,todayKey:todayKey,parseAmount:parseAmount,summary:summary,monthSum:monthSum,groupTerms:groupTerms,DAY:DAY};
 })();
 /*CALC-END*/
 
@@ -1346,6 +1379,7 @@ var Calc=(function(){
   // ===== 今日 =====
   function renderToday(){
     if(!S.me||!S.me.configured)return;
+    renderHaisha();
     var cs=curSummary(),s=cs.s,st=S.today;
     var auto=s.targetToday,eff=Calc.effectiveTarget(auto,st.goal),target=eff.target,sales=Calc.parseAmount(st.sales);
     var n=Calc.jstNow(Date.now()),m=Calc.shiftMath(st,n.min);
@@ -1383,6 +1417,7 @@ var Calc=(function(){
     },500);
   }
   function setupToday(){
+    setupHaisha();
     ['dep','ret'].forEach(function(k){
       var el=$('td-'+k);
       el.addEventListener('input',function(){S.today[k]=el.value;S.micMsg='';renderToday()});
@@ -2096,11 +2131,63 @@ var Calc=(function(){
   function renderMeisaiList(date){
     var box=$('pp-mlist'),rows=date?loadMeisai(date):null,rr=rows?rows.filter(function(x){return x.kind==='乗車'}):[];
     if(!rr.length){box.hidden=true;box.replaceChildren();return}
-    var h='<b>全乗車明細</b><div class="t">乗車 '+rr.length+'回（この電話の中にある明細）</div><table><thead><tr><th>No.</th><th>時刻</th><th>乗車地 → 降車地</th><th class="yen">金額</th></tr></thead><tbody>';
-    rr.forEach(function(x){h+='<tr><td class="n">'+esc(String(x.no||''))+'</td><td class="tm">'+esc(x.board||'')+(x.alight?'〜'+esc(x.alight):'')+'</td><td class="pl">'+esc(x.from||'')+(x.to?' → '+esc(x.to):'')+'</td><td class="yen">'+(Number(x.fare)>0?Number(x.fare).toLocaleString('ja-JP')+'円':'')+'</td></tr>'});
-    box.innerHTML=h+'</tbody></table>';box.hidden=false;
+    // 保存した明細にアプリが付いていなくても、その日の配車ボタンの記録があれば、開いた時に合わせて出す（2026-11-25 本人）
+    var anyApp=rr.some(function(x){return x.app});
+    if(!anyApp){var tp=loadTaps(date);if(tp.length){rr=Calc.matchTaps(rr,tp,date).rows;anyApp=rr.some(function(x){return x.app})}}
+    var h='<b>全乗車明細</b><div class="t">乗車 '+rr.length+'回（この電話の中にある明細）</div><table><thead><tr><th>No.</th><th>時刻</th><th>乗車地 → 降車地</th><th>アプリ</th><th class="yen">金額</th></tr></thead><tbody>';
+    rr.forEach(function(x){h+='<tr><td class="n">'+esc(String(x.no||''))+'</td><td class="tm">'+esc(x.board||'')+(x.alight?'〜'+esc(x.alight):'')+'</td><td class="pl">'+esc(x.from||'')+(x.to?' → '+esc(x.to):'')+'</td><td class="ap">'+(HLAB[x.app]?esc(HLAB[x.app]):'—')+'</td><td class="yen">'+(Number(x.fare)>0?Number(x.fare).toLocaleString('ja-JP')+'円':'')+'</td></tr>'});
+    h+='</tbody></table>';
+    if(anyApp){
+      var t=Calc.tallyApps(rr);
+      h+='<div style="margin-top:12px"><b>アプリ別の売上（税込・明細の金額）</b>';
+      ['go','uber','didi','other','none'].forEach(function(k){if(t[k].n||k==='none')h+='<div class="ro"><span>'+(k==='none'?'アプリ以外':HLAB[k])+'</span><b>'+t[k].yen.toLocaleString('ja-JP')+'円・'+t[k].n+'回</b></div>'});
+      h+='</div>';
+    }
+    box.innerHTML=h;box.hidden=false;
   }
   function saveMeisai(date,rows){try{localStorage.setItem('nippo_meisai_'+date,JSON.stringify({v:1,savedAt:Date.now(),rows:rows}))}catch(e){}}
+  // 配車ボタンの記録（アプリで配車を受けた時に押す）。電話の中だけに残し、裏には送らない（2026-11-25 本人）
+  var HLAB={go:'GO',uber:'Uber',didi:'DiDi',other:'その他アプリ'},HS={last:null,tm:null};
+  function loadTaps(date){try{var o=JSON.parse(localStorage.getItem('nippo_haisha_'+date)||'null');return o&&Array.isArray(o.taps)?o.taps:[]}catch(e){return []}}
+  function saveTaps(date,taps){try{localStorage.setItem('nippo_haisha_'+date,JSON.stringify({v:1,taps:taps}))}catch(e){}}
+  // 明細を読めるのは作り手だけ。画面は作り手かどうかを知らないので、裏が明細を返した電話（nippo_maker）か、明細が残っている電話だけにボタンを出す。見本は出す
+  function isMaker(){if(DEMO)return true;try{if(localStorage.getItem('nippo_maker')==='1')return true;for(var i=0;i<localStorage.length;i++){if((localStorage.key(i)||'').indexOf('nippo_meisai_')===0)return true}}catch(e){}return false}
+  function markMaker(){try{localStorage.setItem('nippo_maker','1')}catch(e){}renderHaisha()}
+  function hsTime(ms){var m=Calc.jstNow(ms).min,h=Math.floor(m/60),n=m%60;return (h<10?'0':'')+h+':'+(n<10?'0':'')+n}
+  function renderHaisha(){
+    var box=$('td-haisha');box.hidden=!isMaker();if(box.hidden)return;
+    var c={},s=[];loadTaps(Calc.haishaDay(Date.now())).forEach(function(p){c[p.app]=(c[p.app]||0)+1});
+    ['go','uber','didi','other'].forEach(function(k){if(c[k])s.push(HLAB[k]+' '+c[k]+'回')});
+    $('hs-sum').textContent=s.length?'今日：'+s.join('・'):'';
+  }
+  // 押した直後の知らせ。取り消すは60秒だけ出す
+  function hsMsg(text,undo){
+    clearTimeout(HS.tm);$('hs-msgt').textContent=text;$('hs-undo').hidden=!undo;$('hs-msg').hidden=false;
+    HS.tm=setTimeout(function(){if(undo){$('hs-undo').hidden=true;HS.last=null}else $('hs-msg').hidden=true},undo?60000:6000);
+  }
+  function setupHaisha(){
+    Array.prototype.forEach.call($('hs-btns').children,function(b){b.addEventListener('click',function(){
+      var now=Date.now(),d=Calc.haishaDay(now),a=b.getAttribute('data-app'),t=loadTaps(d);
+      t.push({app:a,t:now});saveTaps(d,t);HS.last={d:d,t:now};
+      hsMsg(hsTime(now)+' '+HLAB[a]+' を記録しました',true);renderHaisha();
+    })});
+    $('hs-undo').addEventListener('click',function(){
+      if(!HS.last)return;
+      var t=loadTaps(HS.last.d),i=-1;for(var k=0;k<t.length;k++)if(t[k].t===HS.last.t)i=k;
+      if(i>=0){t.splice(i,1);saveTaps(HS.last.d,t)}
+      HS.last=null;hsMsg('取り消しました',false);renderHaisha();
+    });
+  }
+  // 日報を確かめる画面：その日の押した記録と明細を合わせて、アプリ別の売上・件数の欄に入れる。設定でアプリ別を出さない人でも、日報の値として送るので欄を出す
+  function appSig(){return APPK.map(function(a){return $('pp-a-'+a[0]).value+'|'+$('pp-n-'+a[0]).value}).join(',')}
+  function haishaFill(){
+    var d=RP.cur&&RP.cur.date;if(RP.mode!=='photo'||!RP.rows||!d)return;
+    var taps=loadTaps(d);if(!taps.length)return;
+    var m=Calc.matchTaps(RP.rows,taps,d);if(!m.used)return;
+    var t=Calc.tallyApps(m.rows);
+    APPK.forEach(function(a){var x=t[a[0]];$('pp-a-'+a[0]).value=x.n?x.yen.toLocaleString('ja-JP'):'';$('pp-n-'+a[0]).value=x.n?String(x.n):''});
+    $('pp-tax-in').checked=true;$('pp-appcard').hidden=false;$('pp-autonote').hidden=false;RP.autoSig=appSig();
+  }
   function showPhoto(mode,r,warns){
     RP.mode=mode;
     var apps=mode==='apps',lg=r.longFare>0;
@@ -2116,7 +2203,8 @@ var Calc=(function(){
     $('pp-add2note').hidden=!RP.img2;$('pp-add2').textContent=RP.img2?'2枚目を撮り直す':'2枚目（営業の続き）を足す';
     $('pp-fixnote').hidden=!apps||!!r.manual;
     var hasApps=!!S.me.appSales;
-    $('pp-appcard').hidden=!hasApps;
+    if(apps)$('pp-autonote').hidden=true;
+    $('pp-appcard').hidden=!(hasApps||!$('pp-autonote').hidden);
     if(hasApps)writeApps('pp',r);
     $('pp-send').textContent=apps?'保存する':'送信する';
     $('pp-send').hidden=apps&&!hasApps;
@@ -2187,7 +2275,7 @@ var Calc=(function(){
   function onPhoto(file){
     if(!file)return;
     setMsg($('rp-pickmsg'),'');
-    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';RP.held=true;RP.mode='photo';RP.crowd_pp='';RP.rows=null;RP.inTax=null;
+    rpStage('wait');$('rp-waittext').textContent='写真を準備しています';RP.held=true;RP.mode='photo';RP.crowd_pp='';RP.rows=null;RP.inTax=null;RP.autoSig='';$('pp-autonote').hidden=true;
     shrink(file).then(function(dataUrl){
       RP.thumb=dataUrl;RP.img1=dataUrl.split(',')[1];RP.img2=null;
       $('rp-waittext').textContent='写真を読み取っています（10秒ほどかかります）';
@@ -2200,6 +2288,7 @@ var Calc=(function(){
       RP.cur=r0;RP.curWarn=wl;RP.rows=Array.isArray(j.report.rows)?j.report.rows:null;RP.inTax=j.report.salesInTax==null?null:Number(j.report.salesInTax);
       showPhoto('photo',r0,wl);
       var ex=S.reports.find(function(d){return d.date===r0.date});if(ex&&S.me.appSales)writeApps('pp',ex);
+      if(RP.rows)markMaker();haishaFill();
     },function(e){
       RP.held=false;rpStage('pick');
       setMsg($('rp-pickmsg'),e.message==='decode'?'この写真を読み込めませんでした。別の写真を選ぶか、撮り直してください。手で入れることもできます。':e.message+' 手で入れることもできます。',true);
@@ -2208,6 +2297,7 @@ var Calc=(function(){
   // 2枚目（営業の続き）を足して、1枚目と一緒に読み直す。結果は新しい番号に置き換わる
   function onSecondPhoto(file){
     if(!file||!RP.img1)return;
+    var untouched=!!RP.autoSig&&RP.autoSig===appSig();
     var keep={};APPK.forEach(function(a){['a','n'].forEach(function(k){var id='pp-'+k+'-'+a[0];keep[id]=$(id).value})});
     rpStage('wait');$('rp-waittext').textContent='2枚目を準備しています';
     shrink(file).then(function(dataUrl){
@@ -2223,6 +2313,7 @@ var Calc=(function(){
       RP.cur=r0;RP.curWarn=wl;RP.rows=Array.isArray(j.report.rows)?j.report.rows:null;RP.inTax=j.report.salesInTax==null?null:Number(j.report.salesInTax);
       showPhoto('photo',r0,wl);
       Object.keys(keep).forEach(function(id){$(id).value=keep[id]});
+      if(RP.rows)markMaker();if(untouched)haishaFill(); // 手で直していなければ、増えた明細で入れ直す
     },function(e){
       showPhoto('photo',RP.cur,RP.curWarn);Object.keys(keep).forEach(function(id){$(id).value=keep[id]});
       setMsg($('pp-msg'),e.message==='decode'?'この写真を読み込めませんでした。別の写真を選ぶか、撮り直してください。':e.message,true);
@@ -2313,7 +2404,7 @@ var Calc=(function(){
           $('pp-confirm-t').textContent=dlabel(j.report.date)+' はもう入っています（売上 '+yen(e.sales)+'・'+(e.rides!=null?e.rides+'回・':'')+hmShort(e.minutes)+'）。新しい写真の数字で置き換えますか？';
           $('pp-confirm').hidden=false;$('pp-send').hidden=true;return;
         }
-        if(RP.rows&&j.report&&j.report.date)saveMeisai(j.report.date,RP.rows);
+        if(RP.rows&&j.report&&j.report.date)saveMeisai(j.report.date,Calc.matchTaps(RP.rows,loadTaps(j.report.date),j.report.date).rows); // 乗車の行にアプリを付けて残す
         RP.ticket='';done();finishSave(j.report);
       },function(e){
         done();
@@ -2375,6 +2466,7 @@ var Calc=(function(){
     if(m){try{K=decodeURIComponent(m[1])}catch(e){K=m[1]}}
     if(!K&&!DEMO){try{K=localStorage.getItem('taxi-nippo-k')||''}catch(e){}}
     if(!K&&!DEMO){fatal('このページは、渡されたアドレス（終わりに ?k= で始まる長い文字が付いたもの）から開いてください。');return}
+    if(DEMO){var dn=Calc.jstNow(Date.now()).iso;try{if(!localStorage.getItem('nippo_haisha_'+dn))saveTaps(dn,[['go','18:27'],['uber','19:40'],['go','21:55']].map(function(x){return {app:x[0],t:Date.parse(dn+'T'+x[1]+':00+09:00')}}))}catch(e){}} // 見本：今日に押した記録（見本の明細の GO 配車の行に合う時刻。2026-11-25 本人）
     setupToday();setupMonth();setupRecords();setupRank();setupCompare();setupSetup();setupReport();
     [].forEach.call($('seg').querySelectorAll('button'),function(b){b.addEventListener('click',function(){goTab(b.dataset.tab)})});
     $('b-home').addEventListener('click',function(){goTab('today')}); // ホームボタンはホームのタブへ（2026-11-19 本人）
