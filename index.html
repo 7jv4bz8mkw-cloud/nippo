@@ -84,6 +84,12 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--bar);outline-of
 .btn{font:inherit;font-weight:700;white-space:nowrap;flex:none;border:0;border-radius:9px;padding:10px 18px;background:var(--accent);color:var(--on-accent);cursor:pointer}
 .btn.sub{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
 .crowdc{text-align:center;white-space:nowrap}
+.srg{margin-top:8px}.srl{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.chips button{font:inherit;font-size:13px;font-weight:700;padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--fg);cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chips button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.srsum{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg)}
 #pp-meisai{margin-top:10px}
 #pp-meisai .chk{display:block;font-size:13px;margin-top:2px;font-weight:500}
 #pp-meisai .ok{color:var(--good)} #pp-meisai .ng{color:var(--bad)}
@@ -552,6 +558,20 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
 
   <!-- 記録 -->
   <section id="v-records" class="stack" hidden>
+    <!-- 過去の日を探す（2026-11-24 本人）：曜日・日にちの区切り・街の人の多さ（五十日は本人の判断で外した）。同じ段の中は「どれか」、段どうしは「全部」 -->
+    <div class="card" id="sr-card">
+      <h2>過去の日を探す</h2>
+      <div class="srg"><div class="srl">曜日</div><div class="chips" id="sr-dow"><button type="button" data-v="1">月</button><button type="button" data-v="2">火</button><button type="button" data-v="3">水</button><button type="button" data-v="4">木</button><button type="button" data-v="5">金</button><button type="button" data-v="6">土</button><button type="button" data-v="0">日</button></div></div>
+      <div class="srg"><div class="srl">日にちの区切り</div><div class="chips" id="sr-per"><button type="button" data-v="p1">1〜10日</button><button type="button" data-v="p2">11〜20日</button><button type="button" data-v="p3">21日〜月末</button></div>
+        <div class="chips" id="sr-per2"><button type="button" data-v="p25">25日〜月末（給料日のあと）</button></div></div>
+      <div class="srg"><div class="srl">街の人の多さ</div><div class="chips" id="sr-crowd"><button type="button" data-v="多い">多い</button><button type="button" data-v="普通">普通</button><button type="button" data-v="少ない">少ない</button></div></div>
+      <p class="t" id="sr-hint" style="margin:6px 0 0">条件を押すと、当てはまる日を出します。組み合わせもできます（例：金曜で、25日〜月末で、人が多い日）。</p>
+      <div id="sr-res" hidden>
+        <div class="srsum"><div id="sr-count" style="font-weight:700"></div><div class="t" id="sr-avg"></div><div class="t" id="sr-diff"></div></div>
+        <div class="tablewrap"><table class="dtable"><thead><tr><th scope="col">日付</th><th scope="col">売上</th><th scope="col">回数</th><th scope="col">時間あたり</th><th scope="col">人</th></tr></thead><tbody id="sr-rows"></tbody></table></div>
+        <button type="button" class="btn sub wide" id="sr-clear" style="margin-top:8px">条件を消す</button>
+      </div>
+    </div>
     <div class="card">
       <h2>日別の記録</h2>
       <p class="t" style="margin:0">日報が入っている日を押すと、数字を直せます。</p>
@@ -1506,6 +1526,7 @@ var Calc=(function(){
   // ===== 記録 =====
   function renderRecords(){
     if(!S.me||!S.me.configured)return;
+    renderSearch();
     var groups=Calc.groupTerms(S.reports,S.me.closeDay,todayIso());
     var vi=groups.findIndex(function(g){return g.term.id===S.viewTerm});
     if(vi<0){vi=0;S.viewTerm=groups[0].term.id}
@@ -1560,7 +1581,49 @@ var Calc=(function(){
     $('rc-mavg').replaceChildren(tr);
     $('rc-mnote').textContent='平均の行は、終わった月度の数字で出しています。';
   }
+  // ===== 過去の日を探す =====
+  var SR={dow:[],per:[],crowd:[]};
+  function inPer(iso,p){var d=+iso.slice(8,10);return p==='p1'?d<=10:p==='p2'?(d>=11&&d<=20):p==='p3'?d>=21:p==='p25'?d>=25:false}
+  function srMatch(r){
+    if(SR.dow.length&&SR.dow.indexOf(String(Calc.dow(r.date)))<0)return false;
+    if(SR.per.length&&!SR.per.some(function(p){return inPer(r.date,p)}))return false;
+    if(SR.crowd.length&&SR.crowd.indexOf(r.crowd||'')<0)return false;
+    return true;
+  }
+  function hourOf(list){var s=0,m=0;list.forEach(function(r){if(r.minutes>0){s+=r.sales;m+=r.minutes}});return m>0?s/(m/60):null}
+  function renderSearch(){
+    if(!S.me||!S.me.configured)return;
+    [['sr-dow','dow'],['sr-per','per'],['sr-per2','per'],['sr-crowd','crowd']].forEach(function(g){
+      Array.prototype.forEach.call($(g[0]).children,function(b){b.setAttribute('aria-pressed',String(SR[g[1]].indexOf(b.getAttribute('data-v'))>=0))});
+    });
+    var any=SR.dow.length||SR.per.length||SR.crowd.length;
+    $('sr-res').hidden=!any;$('sr-hint').hidden=!!any;
+    if(!any)return;
+    var all=S.reports.filter(function(r){return r.sales!=null}),hit=all.filter(srMatch).sort(function(a,b){return a.date<b.date?1:-1});
+    var labels=[];
+    if(SR.dow.length)labels.push(SR.dow.map(function(v){return '日月火水木金土'[+v]}).join('・')+'曜');
+    SR.per.forEach(function(p){labels.push({p1:'1〜10日',p2:'11〜20日',p3:'21日〜月末',p25:'25日〜月末'}[p])});
+    if(SR.crowd.length)labels.push('人が'+SR.crowd.join('・'));
+    $('sr-count').textContent=hit.length?hit.length+'日 見つかりました（'+labels.join('・')+'）':'当てはまる日がありません（'+labels.join('・')+'）';
+    var h=hourOf(hit),ha=hourOf(all),avgS=hit.length?hit.reduce(function(a,r){return a+r.sales},0)/hit.length:null;
+    $('sr-avg').textContent=hit.length?'平均：売上 '+yen(avgS)+(h!=null?'・時間あたり '+yen(h):''):'';
+    var df=$('sr-diff');df.textContent='';df.style.color='';
+    if(h!=null&&ha!=null&&hit.length<all.length){var d=Math.round(h-ha),pc=Math.round((h-ha)/ha*100);df.textContent='全部の日の平均より、時間あたり '+(d>=0?'+':'−')+yen(Math.abs(d))+'（'+(pc>=0?'+':'−')+Math.abs(pc)+'%）';df.style.color=d>=0?'var(--good)':'var(--bad)'}
+    var tb=$('sr-rows');tb.replaceChildren();
+    hit.slice(0,200).forEach(function(r){
+      var tr=document.createElement('tr');
+      [dlabel2(r.date),r.sales.toLocaleString('ja-JP'),r.rides!=null?r.rides:'',r.minutes?Math.round(r.sales/(r.minutes/60)).toLocaleString('ja-JP')+'円':'',r.crowd||'—'].forEach(function(x,i){var td=document.createElement('td');td.textContent=x;if(i===0&&(Calc.dow(r.date)===0||isHolidayJP(r.date)))td.className='sun';else if(i===0&&Calc.dow(r.date)===6)td.className='sat';tr.appendChild(td)});
+      tb.appendChild(tr);
+    });
+  }
+  function setupSearch(){
+    [['sr-dow','dow'],['sr-per','per'],['sr-per2','per'],['sr-crowd','crowd']].forEach(function(g){
+      Array.prototype.forEach.call($(g[0]).children,function(b){b.addEventListener('click',function(){var v=b.getAttribute('data-v'),a=SR[g[1]],i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v);renderSearch()})});
+    });
+    $('sr-clear').addEventListener('click',function(){SR={dow:[],per:[],crowd:[]};renderSearch()});
+  }
   function setupRecords(){
+    setupSearch();
     function move(step){
       var groups=Calc.groupTerms(S.reports,S.me.closeDay,todayIso());
       var vi=groups.findIndex(function(g){return g.term.id===S.viewTerm}),ni=vi+step;
