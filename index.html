@@ -2215,7 +2215,7 @@ var Calc=(function(){
     return {apps:out};
   }
   // 写真を送ったあと（photo）と、記録・あとから直す入口から開いた時（apps）の画面。数字は変えられない表示
-  // 全乗車明細（今は作り手だけ。裏が返した時だけ出す）。確かめるのは「乗車の行の数＝営業回数」だけ（2枚目の送り忘れに気付くため。2026-11-24 本人）
+  // 全乗車明細（裏が返した時だけ出す。2026-11-25 から全員）。確かめるのは「乗車の行の数＝営業回数」だけ（2枚目の送り忘れに気付くため。2026-11-24 本人）
   function meisaiCheck(rows,inTax,rides){
     var rr=rows.filter(function(x){return x.kind==='乗車'}),rest=rows.filter(function(x){return x.kind==='休憩'}).length;
     return {rides:rr.length,rest:rest,okCount:rides!=null&&rr.length===rides,short:rides!=null&&rr.length<rides,expect:rides};
@@ -2256,8 +2256,8 @@ var Calc=(function(){
   var HLAB={go:'GO',uber:'Uber',didi:'DiDi',other:'その他アプリ'},HS={last:null,tm:null};
   function loadTaps(date){try{var o=JSON.parse(localStorage.getItem('nippo_haisha_'+date)||'null');return o&&Array.isArray(o.taps)?o.taps:[]}catch(e){return []}}
   function saveTaps(date,taps){try{localStorage.setItem('nippo_haisha_'+date,JSON.stringify({v:1,taps:taps}))}catch(e){}}
-  // 明細を読めるのは作り手だけ。画面は作り手かどうかを知らないので、裏が明細を返した電話（nippo_maker）か、明細が残っている電話だけにボタンを出す。見本は出す
-  function isMaker(){if(DEMO)return true;try{if(localStorage.getItem('nippo_maker')==='1')return true;for(var i=0;i<localStorage.length;i++){if((localStorage.key(i)||'').indexOf('nippo_meisai_')===0)return true}}catch(e){}return false}
+  // 配車ボタンは全員に出す（2026-11-25 本人。前は明細を読める作り手だけだった）
+  function isMaker(){return true}
   function markMaker(){try{localStorage.setItem('nippo_maker','1')}catch(e){}renderHaisha()}
   function hsTime(ms){var m=Calc.jstNow(ms).min,h=Math.floor(m/60),n=m%60;return (h<10?'0':'')+h+':'+(n<10?'0':'')+n}
   function renderHaisha(){
@@ -2287,8 +2287,11 @@ var Calc=(function(){
   // 日報を確かめる画面：その日の押した記録と明細を合わせて、アプリ別の売上・件数の欄に入れる。設定でアプリ別を出さない人でも、日報の値として送るので欄を出す
   function appSig(){return APPK.map(function(a){return $('pp-a-'+a[0]).value+'|'+$('pp-n-'+a[0]).value}).join(',')}
   function haishaFill(){
-    var d=RP.cur&&RP.cur.date;if(RP.mode!=='photo'||!RP.rows||!d)return;
+    var d=RP.cur&&RP.cur.date;if(RP.mode!=='photo'||!d)return;
     var taps=loadTaps(d);if(!taps.length)return;
+    // 明細が読めなかった日（手書きの日報など）は、押した回数だけを件数に入れ、金額は手で入れてもらう（2026-11-25）
+    if(!RP.rows||!RP.rows.length){var cn={};taps.forEach(function(x){cn[x.app]=(cn[x.app]||0)+1});APPK.forEach(function(a){$('pp-n-'+a[0]).value=cn[a[0]]?String(cn[a[0]]):''});$('pp-appcard').hidden=false;$('pp-autonote').textContent='件数は配車ボタンから入れました。金額は手で入れてください';$('pp-autonote').hidden=false;RP.autoSig=appSig();return}
+    $('pp-autonote').textContent='配車ボタンと明細から入れました（手で直せます）';
     var m=Calc.matchTaps(RP.rows,taps,d);if(!m.used)return;
     var t=Calc.tallyApps(m.rows);
     APPK.forEach(function(a){var x=t[a[0]];$('pp-a-'+a[0]).value=x.n?x.yen.toLocaleString('ja-JP'):'';$('pp-n-'+a[0]).value=x.n?String(x.n):''});
