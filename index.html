@@ -308,7 +308,13 @@ table.mtable{font-size:11px}
 #cp-label{font-size:12.5px;line-height:1.3}
 .say{font-size:14.5px;font-weight:700;margin:0 0 4px;line-height:1.5}
 .up{color:var(--good)}.down{color:var(--bad)}
-#cp-chart svg{display:block;width:100%;height:auto}
+#cp-chart svg,#dz-chart svg{display:block;width:100%;height:auto}
+/* 売上の分布：ほかの人は灰色の半透明、平均は点線（2026-11-25 本人） */
+.dz-o{fill:var(--muted);opacity:.5}
+.dz-sel{fill:none;stroke:var(--fg);stroke-width:1.5}
+.dz-hit{fill:transparent;cursor:pointer}
+.dz-me{fill:var(--fg);font-size:11px;font-weight:700}
+#dz-label{font-size:12.5px;line-height:1.3}
 .cptable td,.cptable th{padding:6px 3px;font-size:12.5px}
 .cptable td:last-child,.cptable th:last-child{text-align:right}
 /* 平均のカード：1行に収めて縦を短く（2026-11-18 本人） */
@@ -635,6 +641,16 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
     </div>
     <p class="t" id="cp-crowdnote">「街の人」は、その日の街の人の多さで、みんなの答えでいちばん多かったものです（同じ都道府県・勤務の人）。</p>
     <p class="t">平均は、あなたと同じ都道府県・勤務の人の日報で出しています（あなたも含みます）。都道府県と勤務は、設定の画面で変えられます。</p>
+    <!-- この日の売上の分布（日別だけ。2026-11-25 本人） -->
+    <div class="card" id="dz-card" hidden>
+      <h2 style="font-size:14px">この日の売上の分布</h2>
+      <div class="mnav" style="margin:0 0 6px"><button type="button" id="dz-prev">‹ 前の日</button><span class="num" id="dz-label"></span><button type="button" id="dz-next">次の日 ›</button></div>
+      <p class="say" id="dz-say" role="status"></p>
+      <div class="legend" id="dz-legend" hidden><span><svg width="28" height="12" aria-hidden="true"><circle class="cg-p" cx="14" cy="6" r="5"/></svg>あなた</span><span><svg width="28" height="12" aria-hidden="true"><circle class="dz-o" cx="14" cy="6" r="4"/></svg>ほかの人</span><span><svg width="28" height="12" aria-hidden="true"><line class="cg-a" x1="2" y1="6" x2="26" y2="6" stroke-dasharray="4 3"/></svg>この日の平均</span></div>
+      <div id="dz-chart"></div>
+      <p class="t" id="dz-info" style="margin:6px 0 0;min-height:1.5em" role="status"></p>
+      <p class="t" id="dz-note" style="margin:4px 0 0"></p>
+    </div>
   </section>
 
   <!-- マイページ -->
@@ -1849,6 +1865,7 @@ var Calc=(function(){
     [].forEach.call(document.querySelectorAll('#cp-mode [data-mode]'),function(b){b.setAttribute('aria-selected',String(b.dataset.mode===c.mode))});
     [].forEach.call(document.querySelectorAll('#cp-metrics [data-metric]'),function(b){b.setAttribute('aria-pressed',String(b.dataset.metric===c.metric))});
     $('cp-term').hidden=!daily;
+    renderDist(); // 売上の分布は日別だけ。月間の時は隠す（2026-11-25 本人）
     var term=cmpTerm();
     if(daily){
       $('cp-label').textContent=term.label+'（'+mdLabel(term.start)+'〜'+mdLabel(term.end)+'）';
@@ -1904,6 +1921,7 @@ var Calc=(function(){
     var c=S.cmp;c.pref=S.me.pref||'大阪府';c.shift=S.me.shift||'昼勤';c.loading=true;c.err='';renderCompare();
     var want={mode:c.mode,pref:c.pref,shift:c.shift,metric:c.metric,term:c.mode==='daily'?cmpTerm().id:''};
     var key=JSON.stringify(want);
+    if(c.mode==='daily')loadDist(false);
     api('compare',want).then(function(j){
       if(JSON.stringify({mode:c.mode,pref:c.pref,shift:c.shift,metric:c.metric,term:c.mode==='daily'?cmpTerm().id:''})!==key)return;
       c.loading=false;c.data=j.compare;renderCompare();
@@ -1913,7 +1931,93 @@ var Calc=(function(){
     [].forEach.call(document.querySelectorAll('#cp-mode [data-mode]'),function(b){b.addEventListener('click',function(){S.cmp.mode=b.dataset.mode;loadCompare()})});
     [].forEach.call(document.querySelectorAll('#cp-metrics [data-metric]'),function(b){b.addEventListener('click',function(){S.cmp.metric=b.dataset.metric;loadCompare()})});
     $('cp-prev').addEventListener('click',function(){var t=cmpTerm();S.cmp.termId=Calc.termOf(Calc.addDays(t.start,-1),S.me.closeDay).id;loadCompare()});
-    $('cp-next').addEventListener('click',function(){var t=cmpTerm();S.cmp.termId=Calc.termOf(Calc.addDays(t.end,1),S.me.closeDay).id;loadCompare()});
+    $('cp-next').addEventListener('click',function(){var t=cmpTerm();S.cmp.termId=Calc.termOf(Calc.addDays(t.end,1),S.me.closeDay).id;loadCompare()});    $('dz-prev').addEventListener('click',function(){if(DZ.data&&DZ.date){DZ.date=Calc.addDays(DZ.date,-1);loadDist(true)}});
+    $('dz-next').addEventListener('click',function(){if(DZ.data&&DZ.date){DZ.date=Calc.addDays(DZ.date,1);loadDist(true)}});
+    // 点を押すと、下の1行に中身を出す。もう一度押すと消える
+    $('dz-chart').addEventListener('click',function(e){var t=e.target.closest?e.target.closest('[data-i]'):null;if(!t)return;var i=Number(t.getAttribute('data-i'));DZ.sel=DZ.sel===i?-1:i;renderDist()});
+  }
+
+
+  // ===== 比較：この日の売上の分布（2026-11-25 本人） =====
+  // 数字の出どころはランキングと同じ（api 'ranking'）。時間平均単価の順位と売上の順位を同じ日に2回取り、呼び名で合わせて、乗務時間＝売上÷時間平均単価×60 で戻す（裏は変えない）
+  var DZ={date:null,data:null,loading:false,err:'',sel:-1,key:'',at:0,seq:0};
+  function dzPoints(hr,sl,mine){
+    var sm={};sl.rows.forEach(function(r){sm[r.nick+'|'+(r.me?1:0)]=r.value});
+    var pts=[];
+    hr.rows.forEach(function(r){
+      var sv=sm[r.nick+'|'+(r.me?1:0)];
+      if(sv==null||!(r.value>0))return;
+      pts.push({nick:r.nick,me:!!r.me,sales:sv,min:sv/r.value*60,out:false});
+    });
+    // ランキングに出ていない自分（手書き日報の人など）：その日の日報があれば、目立つ点で出す
+    if(!pts.some(function(p){return p.me})){
+      var rp=S.reports.filter(function(x){return x.date===hr.date})[0];
+      if(rp&&rp.minutes>0&&rp.sales>=0)pts.push({nick:'あなた',me:true,sales:rp.sales,min:rp.minutes,out:true});
+    }
+    return pts;
+  }
+  function loadDist(keepDate){
+    var c=S.cmp,key=c.pref+'|'+c.shift;
+    if(DZ.key!==key){DZ.key=key;DZ.date=null;DZ.data=null;DZ.sel=-1}
+    else if(!keepDate&&DZ.data&&Date.now()-DZ.at<60000){renderDist();return} // 切り替えのたびに取り直さない
+    var mySeq=++DZ.seq;DZ.loading=true;DZ.err='';renderDist();
+    var base={mode:'daily',pref:c.pref,shift:c.shift,date:DZ.date||''};
+    api('ranking',Object.assign({metric:'hour'},base)).then(function(h){
+      return api('ranking',Object.assign({metric:'sales'},base,{date:h.ranking.date})).then(function(s){return [h.ranking,s.ranking]});
+    }).then(function(r){
+      if(mySeq!==DZ.seq)return;
+      DZ.loading=false;DZ.date=r[0].date;DZ.sel=-1;DZ.at=Date.now();
+      DZ.data={date:r[0].date,first:r[0].first,today:r[0].today,pref:r[0].pref,shift:r[0].shift,pts:dzPoints(r[0],r[1])};
+      renderDist();
+    },function(e){if(mySeq!==DZ.seq)return;DZ.loading=false;DZ.data=null;DZ.err=e.message;renderDist()});
+  }
+  function distSvg(pts,avg,sel){
+    var W=340,H=240,T=14,Bm=30,R=10,L=36;
+    var hmax=Math.max.apply(null,pts.map(function(p){return p.min/60})),xmax=Math.max(12,Math.ceil(hmax/4)*4);
+    var tk=Calc.niceTicks(0,Math.max.apply(null,pts.map(function(p){return p.sales}))*1.05);
+    var X=function(h){return L+(W-L-R)*h/xmax},Y=function(v){return T+(H-T-Bm)*(1-(v-tk.lo)/(tk.hi-tk.lo))};
+    var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="この日の乗務時間と売上の散布図">';
+    tk.ticks.forEach(function(v){var y=Y(v).toFixed(1);s+='<line class="cg-g" x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'"/><text class="cg-t" x="'+(L-5)+'" y="'+(+y+3.5)+'" text-anchor="end">'+(v===0?'0':(Math.round(v/1000)/10)+'万')+'</text>'});
+    for(var h=0;h<=xmax;h+=4){var x=X(h).toFixed(1);s+='<line class="cg-g" x1="'+x+'" x2="'+x+'" y1="'+(H-Bm)+'" y2="'+(H-Bm+3)+'"/><text class="cg-t" x="'+x+'" y="'+(H-Bm+15)+'" text-anchor="'+(h===xmax?'end':'middle')+'">'+(h===0?'0':h+'時間')+'</text>'}
+    // 点線：原点から、この日の平均の時間平均単価の傾き。図の上にはみ出す所で切る
+    if(avg>0){var xe=Math.min(xmax,tk.hi/avg);s+='<line class="cg-a" stroke-dasharray="5 4" x1="'+X(0).toFixed(1)+'" y1="'+Y(0).toFixed(1)+'" x2="'+X(xe).toFixed(1)+'" y2="'+Y(avg*xe).toFixed(1)+'"/>'}
+    var draw=function(p,i){
+      var cx=X(p.min/60),cy=Y(p.sales),o='';
+      if(i===sel)o+='<circle class="dz-sel" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+(p.me?9:7)+'"/>';
+      o+='<circle class="'+(p.me?'cg-p':'dz-o')+'" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+(p.me?6:4)+'"/>';
+      if(p.me){var below=cy<T+16,end=cx>W-R-40;o+='<text class="dz-me" x="'+(end?cx-9:cx).toFixed(1)+'" y="'+(below?cy+19:cy-10).toFixed(1)+'" text-anchor="'+(end?'end':'middle')+'">あなた</text>'}
+      return o+'<circle class="dz-hit" data-i="'+i+'" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="13"><title>'+esc(p.nick)+'</title></circle>';
+    };
+    pts.forEach(function(p,i){if(!p.me)s+=draw(p,i)}); // 自分は最後（いちばん上）に描く
+    pts.forEach(function(p,i){if(p.me)s+=draw(p,i)});
+    return s+'</svg>';
+  }
+  function renderDist(){
+    var c=S.cmp,daily=c.mode==='daily',card=$('dz-card');
+    card.hidden=!daily;
+    if(!daily)return;
+    var d=DZ.data,say=$('dz-say'),info=$('dz-info'),note=$('dz-note');
+    $('dz-legend').hidden=true;$('dz-chart').replaceChildren();info.textContent='';note.textContent='';
+    if(DZ.loading||!d){
+      $('dz-label').textContent=DZ.loading?'読み込んでいます':'';say.className='say';say.textContent=DZ.loading?'':(DZ.err||'');
+      $('dz-prev').disabled=true;$('dz-next').disabled=true;return;
+    }
+    var part=d.pts.filter(function(p){return !p.out}),meP=d.pts.filter(function(p){return p.me})[0];
+    $('dz-label').textContent=dlabel(d.date)+' '+(d.pref||'全国')+'・'+shiftLabel(d.shift)+' '+part.length+'人';
+    $('dz-prev').disabled=!(d.first&&d.date>d.first);
+    $('dz-next').disabled=!(d.date<d.today);
+    say.className='say';
+    if(!part.length)say.textContent='この日は、ランキングに参加している人の日報がまだありません。';
+    else say.textContent='';
+    if(!d.pts.length)return;
+    var sS=0,sM=0;part.forEach(function(p){sS+=p.sales;sM+=p.min});
+    var avg=sM>0?sS/(sM/60):0;
+    $('dz-legend').hidden=false;
+    $('dz-chart').innerHTML=distSvg(d.pts,avg,DZ.sel);
+    var p=d.pts[DZ.sel];
+    if(p){var m=Math.round(p.min);info.textContent=(p.me?'あなた':p.nick)+'：売上 '+yen(p.sales)+'・乗務時間 '+Math.floor(m/60)+'時間'+(m%60)+'分・時間平均単価 '+yen(p.sales/(p.min/60))}
+    else info.textContent='点を押すと、その人の数字が出ます。';
+    note.textContent=(avg>0?'点線は、この日の平均の時間平均単価（'+yen(avg)+'）です。点線より上の人は、平均より1時間あたりで多く売っています。':'')+(meP&&meP.out?' 「あなた」は、ランキングには出ていません（平均にも入っていません）。':'');
   }
 
   // ===== マイページ =====
@@ -2511,11 +2615,13 @@ var Calc=(function(){
       reports.sort(function(a,b){return a.date<b.date?-1:1});
     })();
     // ほかの人：昼勤5人・夜勤3人・隔日勤務3人。やはり昨日から100日ぶん。休みの日・ロングが空の日がある
-    var others=[['昼勤','タク太郎','大阪府'],['昼勤','なにわ号','大阪府'],['昼勤','しんちゃん','京都府'],['昼勤','ベテランK','兵庫県'],['昼勤','まーくん','大阪府'],['夜勤','ナイト山','東京都'],['夜勤','ふくちゃん','大阪府'],['夜勤','月夜のヒロ','京都府'],['隔日勤務','ぎんちゃん','大阪府'],['隔日勤務','ひとし','京都府'],['隔日勤務','ミドリ','大阪府']];
+    var others=[['昼勤','タク太郎','大阪府'],['昼勤','なにわ号','大阪府'],['昼勤','しんちゃん','京都府'],['昼勤','ベテランK','兵庫県'],['昼勤','まーくん','大阪府'],['夜勤','ナイト山','東京都'],['夜勤','ふくちゃん','大阪府'],['夜勤','月夜のヒロ','京都府'],['隔日勤務','ぎんちゃん','大阪府'],['隔日勤務','ひとし','京都府'],['隔日勤務','ミドリ','大阪府'],
+      /* 売上の分布の図に点が10人前後出るよう、昼勤・大阪府を足した（既存の人の番号は変えない。2026-11-25 本人） */
+      ['昼勤','あべのハル','大阪府'],['昼勤','ミナミ号','大阪府'],['昼勤','天満のジロー','大阪府'],['昼勤','ゆうちゃん','大阪府'],['昼勤','北新地ナオ','大阪府'],['昼勤','堺のケンジ','大阪府'],['昼勤','じゅん','大阪府'],['昼勤','ひがしの','大阪府']];
     var oreps=[];
     others.forEach(function(o,oi){
       for(var i=0;i<=100;i++){ // ほかの人は今日の分から（自分は昨日から）。今日は、まだ自分の日報が無い
-        var n=(i*13+oi*29+oi*i)%1000;
+        var n=oi>=11?(i*13+oi*31+oi*i+5)%1000:(i*13+oi*29+oi*i)%1000; // 11番目からは分布の図用（今日の分も休みにならない番号。2026-11-25 本人）
         if(oi!==1&&(n+oi)%6===0)continue;
         if(oi===1&&i%2!==0)continue; // 嘱託は出勤できる日が少ない（2日に1日）
         var e={who:'o'+oi,nick:o[1],pref:o[2],shift:o[0],date:Calc.addDays(iso0,-i),sales:r10(38000+((n*37+oi*911)%42000)),rides:12+(n%24),minutes:600+((n*11)%190),longFare:null,longFrom:'',longTo:'',me:false,kt:oi===1}; // なにわ号は嘱託（月の出勤が少ない）
