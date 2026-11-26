@@ -626,18 +626,18 @@ tr.tap td:first-child{text-decoration:underline;text-decoration-color:var(--line
 
   <!-- 比較：自分と平均の折れ線 -->
   <section id="v-compare" class="stack" hidden>
-    <!-- この日の売上の分布（日別だけ。比較の画面の一番上。2026-11-25 本人） -->
+    <!-- 日別・月間の切り替えは比較の画面の一番上。その下に売上の分布（2026-11-25 本人） -->
+    <div class="seg" id="cp-mode" role="group" aria-label="日別・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日別</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
     <div class="card" id="dz-card" hidden>
-      <h2 style="font-size:14px">この日の売上の分布</h2>
+      <h2 style="font-size:14px" id="dz-h">この日の売上の分布</h2>
       <div class="mnav" style="margin:0 0 6px"><button type="button" id="dz-prev">‹ 前の日</button><span class="num" id="dz-label"></span><button type="button" id="dz-next">次の日 ›</button></div>
       <p class="say" id="dz-say" role="status"></p>
-      <div class="legend" id="dz-legend" hidden><span><svg width="28" height="12" aria-hidden="true"><circle class="cg-p" cx="14" cy="6" r="5"/></svg>あなた</span><span><svg width="28" height="12" aria-hidden="true"><circle class="dz-o" cx="14" cy="6" r="4"/></svg>ほかの人</span><span><svg width="28" height="12" aria-hidden="true"><line class="cg-a" x1="2" y1="6" x2="26" y2="6" stroke-dasharray="4 3"/></svg>この日の平均</span></div>
+      <div class="legend" id="dz-legend" hidden><span><svg width="28" height="12" aria-hidden="true"><circle class="cg-p" cx="14" cy="6" r="5"/></svg>あなた</span><span><svg width="28" height="12" aria-hidden="true"><circle class="dz-o" cx="14" cy="6" r="4"/></svg>ほかの人</span><span><svg width="28" height="12" aria-hidden="true"><line class="cg-a" x1="2" y1="6" x2="26" y2="6" stroke-dasharray="4 3"/></svg><span id="dz-avgl">この日の平均</span></span></div>
       <div id="dz-chart"></div>
       <p class="t" id="dz-info" style="margin:6px 0 0;min-height:1.5em" role="status"></p>
       <p class="t" id="dz-note" style="margin:4px 0 0"></p>
     </div>
     <div>
-      <div class="seg" id="cp-mode" role="group" aria-label="日別・月間" style="margin:0 0 10px"><button type="button" data-mode="daily" aria-selected="true">日別</button><button type="button" data-mode="month" aria-selected="false">月間</button></div>
       <p class="t" id="cp-who" style="margin:0 0 8px"></p>
       <div class="sw" id="cp-metrics" role="group" aria-label="比べる数字"><button type="button" data-metric="hour" aria-pressed="true">時間平均単価</button><button type="button" data-metric="sales" aria-pressed="false">売上</button><button type="button" data-metric="rides" aria-pressed="false">営業回数</button></div>
       <div class="mnav" id="cp-term" style="margin:0"><button type="button" id="cp-prev">‹ 前の月度</button><span class="num" id="cp-label"></span><button type="button" id="cp-next">次の月度 ›</button></div>
@@ -1871,7 +1871,7 @@ var Calc=(function(){
     [].forEach.call(document.querySelectorAll('#cp-mode [data-mode]'),function(b){b.setAttribute('aria-selected',String(b.dataset.mode===c.mode))});
     [].forEach.call(document.querySelectorAll('#cp-metrics [data-metric]'),function(b){b.setAttribute('aria-pressed',String(b.dataset.metric===c.metric))});
     $('cp-term').hidden=!daily;
-    renderDist(); // 売上の分布は日別だけ。月間の時は隠す（2026-11-25 本人）
+    renderDist(); // 売上の分布は日別・月間の両方（月間は2026-11-25 本人）
     var term=cmpTerm();
     if(daily){
       $('cp-label').textContent=term.label+'（'+mdLabel(term.start)+'〜'+mdLabel(term.end)+'）';
@@ -1927,7 +1927,7 @@ var Calc=(function(){
     var c=S.cmp;c.pref=S.me.pref||'大阪府';c.shift=S.me.shift||'昼勤';c.loading=true;c.err='';renderCompare();
     var want={mode:c.mode,pref:c.pref,shift:c.shift,metric:c.metric,term:c.mode==='daily'?cmpTerm().id:''};
     var key=JSON.stringify(want);
-    if(c.mode==='daily')loadDist(false);
+    if(c.mode==='daily')loadDist(false);else loadMonthDist(false);
     api('compare',want).then(function(j){
       if(JSON.stringify({mode:c.mode,pref:c.pref,shift:c.shift,metric:c.metric,term:c.mode==='daily'?cmpTerm().id:''})!==key)return;
       c.loading=false;c.data=j.compare;renderCompare();
@@ -1940,7 +1940,7 @@ var Calc=(function(){
     $('cp-next').addEventListener('click',function(){var t=cmpTerm();S.cmp.termId=Calc.termOf(Calc.addDays(t.end,1),S.me.closeDay).id;loadCompare()});    $('dz-prev').addEventListener('click',function(){if(DZ.data&&DZ.date){DZ.date=Calc.addDays(DZ.date,-1);loadDist(true)}});
     $('dz-next').addEventListener('click',function(){if(DZ.data&&DZ.date){DZ.date=Calc.addDays(DZ.date,1);loadDist(true)}});
     // 点を押すと、下の1行に中身を出す。もう一度押すと消える
-    $('dz-chart').addEventListener('click',function(e){var t=e.target.closest?e.target.closest('[data-i]'):null;if(!t)return;var i=Number(t.getAttribute('data-i'));DZ.sel=DZ.sel===i?-1:i;renderDist()});
+    $('dz-chart').addEventListener('click',function(e){var t=e.target.closest?e.target.closest('[data-i]'):null;if(!t)return;var i=Number(t.getAttribute('data-i'));var Z=S.cmp.mode==='daily'?DZ:DM;Z.sel=Z.sel===i?-1:i;renderDist()});
   }
 
 
@@ -1957,8 +1957,13 @@ var Calc=(function(){
     });
     // ランキングに出ていない自分（手書き日報の人など）：その日の日報があれば、目立つ点で出す
     if(!pts.some(function(p){return p.me})){
-      var rp=S.reports.filter(function(x){return x.date===hr.date})[0];
-      if(rp&&rp.minutes>0&&rp.sales>=0)pts.push({nick:'あなた',me:true,sales:rp.sales,min:rp.minutes,out:true});
+      if(hr.mode==='month'){ // 月間：その月度の日報を足して1点にする
+        var ms=0,mm=0;S.reports.forEach(function(x){if(x.date>=hr.from&&x.date<=hr.to&&x.minutes>0){ms+=x.sales;mm+=x.minutes}});
+        if(mm>0)pts.push({nick:'あなた',me:true,sales:ms,min:mm,out:true});
+      }else{
+        var rp=S.reports.filter(function(x){return x.date===hr.date})[0];
+        if(rp&&rp.minutes>0&&rp.sales>=0)pts.push({nick:'あなた',me:true,sales:rp.sales,min:rp.minutes,out:true});
+      }
     }
     return pts;
   }
@@ -1977,14 +1982,31 @@ var Calc=(function(){
       renderDist();
     },function(e){if(mySeq!==DZ.seq)return;DZ.loading=false;DZ.data=null;DZ.err=e.message;renderDist()});
   }
-  function distSvg(pts,avg,sel){
+  // 月間：裏の月間は今の月度だけを返す（前・次の月度は無い）。日別とは別に持つ（2026-11-25 本人）
+  var DM={data:null,loading:false,err:'',sel:-1,key:'',at:0,seq:0};
+  function loadMonthDist(){
+    var c=S.cmp,key=c.pref+'|'+c.shift;
+    if(DM.key!==key){DM.key=key;DM.data=null;DM.sel=-1}
+    else if(DM.data&&Date.now()-DM.at<60000){renderDist();return}
+    var mySeq=++DM.seq;DM.loading=true;DM.err='';renderDist();
+    var base={mode:'month',pref:c.pref,shift:c.shift};
+    api('ranking',Object.assign({metric:'hour'},base)).then(function(h){
+      return api('ranking',Object.assign({metric:'sales'},base)).then(function(s){return [h.ranking,s.ranking]});
+    }).then(function(r){
+      if(mySeq!==DM.seq)return;
+      DM.loading=false;DM.sel=-1;DM.at=Date.now();
+      DM.data={from:r[0].from,to:r[0].to,pref:r[0].pref,shift:r[0].shift,pts:dzPoints(r[0],r[1])};
+      renderDist();
+    },function(e){if(mySeq!==DM.seq)return;DM.loading=false;DM.data=null;DM.err=e.message;renderDist()});
+  }
+  function distSvg(pts,avg,sel,month){
     var W=340,H=240,T=14,Bm=30,R=10,L=36;
-    var hmax=Math.max.apply(null,pts.map(function(p){return p.min/60})),xmax=Math.max(12,Math.ceil(hmax/4)*4);
+    var hmax=Math.max.apply(null,pts.map(function(p){return p.min/60})),st=month?50:4,xmax=month?Math.max(50,Math.ceil(hmax/50)*50):Math.max(12,Math.ceil(hmax/4)*4);
     var tk=Calc.niceTicks(0,Math.max.apply(null,pts.map(function(p){return p.sales}))*1.05);
     var X=function(h){return L+(W-L-R)*h/xmax},Y=function(v){return T+(H-T-Bm)*(1-(v-tk.lo)/(tk.hi-tk.lo))};
-    var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="この日の乗務時間と売上の散布図">';
+    var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+(month?'この月度':'この日')+'の乗務時間と売上の散布図">';
     tk.ticks.forEach(function(v){var y=Y(v).toFixed(1);s+='<line class="cg-g" x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'"/><text class="cg-t" x="'+(L-5)+'" y="'+(+y+3.5)+'" text-anchor="end">'+(v===0?'0':(Math.round(v/1000)/10)+'万')+'</text>'});
-    for(var h=0;h<=xmax;h+=4){var x=X(h).toFixed(1);s+='<line class="cg-g" x1="'+x+'" x2="'+x+'" y1="'+(H-Bm)+'" y2="'+(H-Bm+3)+'"/><text class="cg-t" x="'+x+'" y="'+(H-Bm+15)+'" text-anchor="'+(h===xmax?'end':'middle')+'">'+(h===0?'0':h+'時間')+'</text>'}
+    for(var h=0;h<=xmax;h+=st){var x=X(h).toFixed(1);s+='<line class="cg-g" x1="'+x+'" x2="'+x+'" y1="'+(H-Bm)+'" y2="'+(H-Bm+3)+'"/><text class="cg-t" x="'+x+'" y="'+(H-Bm+15)+'" text-anchor="'+(h===xmax?'end':'middle')+'">'+(h===0?'0':h+'時間')+'</text>'}
     // 点線：原点から、この日の平均の時間平均単価の傾き。図の上にはみ出す所で切る
     if(avg>0){var xe=Math.min(xmax,tk.hi/avg);s+='<line class="cg-a" stroke-dasharray="5 4" x1="'+X(0).toFixed(1)+'" y1="'+Y(0).toFixed(1)+'" x2="'+X(xe).toFixed(1)+'" y2="'+Y(avg*xe).toFixed(1)+'"/>'}
     var draw=function(p,i){
@@ -2000,30 +2022,39 @@ var Calc=(function(){
   }
   function renderDist(){
     var c=S.cmp,daily=c.mode==='daily',card=$('dz-card');
-    card.hidden=!daily;
-    if(!daily)return;
-    var d=DZ.data,say=$('dz-say'),info=$('dz-info'),note=$('dz-note');
+    card.hidden=false;
+    var Z=daily?DZ:DM; // 日別と月間は、データを別に持つ
+    $('dz-h').textContent=daily?'この日の売上の分布':'今の月度の売上の分布';
+    $('dz-avgl').textContent=daily?'この日の平均':'この月度の平均';
+    $('dz-prev').hidden=!daily;$('dz-next').hidden=!daily; // 月間は今の月度だけ。前後のボタンは出さない
+    var d=Z.data,say=$('dz-say'),info=$('dz-info'),note=$('dz-note');
     $('dz-legend').hidden=true;$('dz-chart').replaceChildren();info.textContent='';note.textContent='';
-    if(DZ.loading||!d){
-      $('dz-label').textContent=DZ.loading?'読み込んでいます':'';say.className='say';say.textContent=DZ.loading?'':(DZ.err||'');
+    if(Z.loading||!d){
+      $('dz-label').textContent=Z.loading?'読み込んでいます':'';say.className='say';say.textContent=Z.loading?'':(Z.err||'');
       $('dz-prev').disabled=true;$('dz-next').disabled=true;return;
     }
     var part=d.pts.filter(function(p){return !p.out}),meP=d.pts.filter(function(p){return p.me})[0];
-    $('dz-label').textContent=dlabel(d.date)+' '+(d.pref||'全国')+'・'+shiftLabel(d.shift)+' '+part.length+'人';
-    $('dz-prev').disabled=!(d.first&&d.date>d.first);
-    $('dz-next').disabled=!(d.date<d.today);
+    if(daily){
+      $('dz-label').textContent=dlabel(d.date)+' '+(d.pref||'全国')+'・'+shiftLabel(d.shift)+' '+part.length+'人';
+      $('dz-prev').disabled=!(d.first&&d.date>d.first);
+      $('dz-next').disabled=!(d.date<d.today);
+    }else{
+      var ct=Calc.termOf(d.to,RANK_CLOSE_DAY); // 月度名は、ランキングの月間と同じ15日締め
+      $('dz-label').textContent=ct.label+'（'+mdLabel(d.from)+'〜'+mdLabel(d.to)+'） '+(d.pref||'全国')+'・'+shiftLabel(d.shift)+' '+part.length+'人';
+    }
     say.className='say';
-    if(!part.length)say.textContent='この日は、ランキングに参加している人の日報がまだありません。';
+    if(!part.length)say.textContent=daily?'この日は、ランキングに参加している人の日報がまだありません。':'今の月度は、ランキングに参加している人の日報がまだありません。';
     else say.textContent='';
     if(!d.pts.length)return;
     var sS=0,sM=0;part.forEach(function(p){sS+=p.sales;sM+=p.min});
     var avg=sM>0?sS/(sM/60):0;
     $('dz-legend').hidden=false;
-    $('dz-chart').innerHTML=distSvg(d.pts,avg,DZ.sel);
-    var p=d.pts[DZ.sel];
+    $('dz-chart').innerHTML=distSvg(d.pts,avg,Z.sel,!daily);
+    var p=d.pts[Z.sel];
     if(p){var m=Math.round(p.min);info.textContent=(p.me?'あなた':p.nick)+'：売上 '+yen(p.sales)+'・乗務時間 '+Math.floor(m/60)+'時間'+(m%60)+'分・時間平均単価 '+yen(p.sales/(p.min/60))}
     else info.textContent='点を押すと、その人の数字が出ます。';
-    note.textContent=(avg>0?'点線は、この日の平均の時間平均単価（'+yen(avg)+'）です。点線より上の人は、平均より1時間あたりで多く売っています。':'')+(meP&&meP.out?' 「あなた」は、ランキングには出ていません（平均にも入っていません）。':'');
+    var per=daily?'この日':'この月度';
+    note.textContent=(avg>0?'点線は、'+per+'の平均の時間平均単価（'+yen(avg)+'）です。点線より上の人は、平均より1時間あたりで多く売っています。':'')+(meP&&meP.out?' 「あなた」は、ランキングには出ていません（平均にも入っていません）。':'');
   }
 
   // ===== マイページ =====
